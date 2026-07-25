@@ -116,14 +116,57 @@
 .runtime-status.failed::before {
     background: var(--signal-sell);
 }
+.runtime-status.degraded::before,
+.runtime-status.planned::before,
+.runtime-status.external::before,
 .runtime-status.disabled::before,
 .runtime-status.unconfigured::before,
 .runtime-status.manual::before {
     background: var(--accent-orange);
 }
+.v2-mini-list {
+    display: grid;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+.v2-mini-list li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 9px 10px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    color: var(--text-muted);
+    font-size: 0.78rem;
+}
+.v2-mini-list strong {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+.v2-two-col {
+    display: grid;
+    grid-template-columns: minmax(0, 1.4fr) minmax(260px, 0.6fr);
+    gap: 12px;
+}
+.v2-action-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 32px;
+    padding: 0 10px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    font-size: 0.78rem;
+    text-decoration: none;
+}
 @media (max-width: 980px) {
     .v2-grid { grid-template-columns: 1fr; }
     .v2-wide { grid-column: auto; }
+    .v2-two-col { grid-template-columns: 1fr; }
 }
 </style>
 {% endblock %}
@@ -169,6 +212,61 @@
         Current page is a lightweight shell. Real providers will be connected only after you confirm API keys, refresh limits, and fallback behavior.
     </section>
 
+    {% if state.sources %}
+    <section class="v2-two-col" aria-label="Page control state">
+        <article class="v2-card">
+            <div class="flex items-center justify-between mb-12">
+                <h3 style="margin:0;">Source State</h3>
+                <button type="button" class="btn btn-sm" onclick="loadV2PageState()">Check</button>
+            </div>
+            <div style="overflow-x:auto;">
+                <table class="runtime-table" aria-label="Page source state">
+                    <thead>
+                        <tr>
+                            <th>Source</th>
+                            <th>Status</th>
+                            <th>Mode</th>
+                            <th>Limit</th>
+                        </tr>
+                    </thead>
+                    <tbody id="v2-page-state-body">
+                        {% for source in state.sources %}
+                        <tr>
+                            <td>{{ source.name }}</td>
+                            <td><span class="runtime-status {{ source.status }}">{{ source.status }}</span></td>
+                            <td>{{ source.mode }}</td>
+                            <td>{{ source.limit }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </article>
+        <aside class="v2-card">
+            <h3>Manual Controls</h3>
+            <ul class="v2-mini-list">
+                {% for control in state.controls %}
+                <li><strong>{{ control }}</strong><span>locked</span></li>
+                {% endfor %}
+            </ul>
+            {% if page_id == "trading-lab" %}
+            <div style="margin-top:12px;">
+                <a class="v2-action-link" href="https://www.tradingview.com/chart/?symbol=NASDAQ%3ANVDA" target="_blank" rel="noreferrer">Open TradingView</a>
+            </div>
+            {% endif %}
+        </aside>
+    </section>
+
+    <section class="v2-card" aria-label="Next integration points">
+        <h3>Next Integration Points</h3>
+        <ul class="v2-mini-list">
+            {% for step in state.next_steps %}
+            <li><strong>{{ step }}</strong><span>pending</span></li>
+            {% endfor %}
+        </ul>
+    </section>
+    {% endif %}
+
     {% if page_id == "runtime" %}
     <section class="v2-card" aria-label="Live runtime status">
         <div class="flex items-center justify-between mb-12">
@@ -196,10 +294,15 @@
 </div>
 {% endblock %}
 {% block extra_scripts %}
+<script>
+function v2StatusClass(status) {
+    return String(status || "unknown").toLowerCase().replace(/[^a-z0-9_-]/g, "");
+}
+</script>
 {% if page_id == "runtime" %}
 <script>
 function runtimeStatusClass(status) {
-    return String(status || "unknown").toLowerCase().replace(/[^a-z0-9_-]/g, "");
+    return v2StatusClass(status);
 }
 
 function runtimeRow(area, item) {
@@ -245,4 +348,26 @@ function loadRuntimeStatus() {
 loadRuntimeStatus();
 </script>
 {% endif %}
+<script>
+function loadV2PageState() {
+    var body = document.getElementById('v2-page-state-body');
+    if (!body) return;
+    fetch('/api/v2/pages/{{ page_id }}/state', { cache: 'no-store' })
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+            body.innerHTML = (data.sources || []).map(function(item) {
+                var status = v2StatusClass(item.status);
+                return '<tr>' +
+                    '<td>' + item.name + '</td>' +
+                    '<td><span class="runtime-status ' + status + '">' + item.status + '</span></td>' +
+                    '<td>' + item.mode + '</td>' +
+                    '<td>' + item.limit + '</td>' +
+                    '</tr>';
+            }).join('');
+        })
+        .catch(function(err) {
+            body.innerHTML = '<tr><td colspan="4">State check failed: ' + err + '</td></tr>';
+        });
+}
+</script>
 {% endblock %}

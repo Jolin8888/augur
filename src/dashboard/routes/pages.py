@@ -167,10 +167,111 @@ V2_PAGES = {
 }
 
 
+V2_PAGE_STATE = {
+    "radar": {
+        "sources": [
+            {"name": "Market snapshot", "status": "degraded", "mode": "REST fallback", "limit": "60s refresh"},
+            {"name": "News heat", "status": "disabled", "mode": "manual", "limit": "50 headlines"},
+            {"name": "Social heat", "status": "disabled", "mode": "manual", "limit": "25 posts"},
+            {"name": "Options / flow", "status": "planned", "mode": "manual", "limit": "provider TBD"},
+        ],
+        "controls": ["Choose watchlist", "Refresh snapshot", "Open source receipts", "Export memo inputs"],
+        "next_steps": ["Pick first tickers", "Confirm providers", "Set per-refresh limits"],
+    },
+    "sentiment": {
+        "sources": [
+            {"name": "X / Twitter KOLs", "status": "unconfigured", "mode": "manual", "limit": "API key required"},
+            {"name": "Reddit posts", "status": "unconfigured", "mode": "manual", "limit": "API key required"},
+            {"name": "Google News tone", "status": "disabled", "mode": "cache-first", "limit": "50 headlines"},
+        ],
+        "controls": ["Edit KOL list", "Edit subreddit list", "Run sentiment refresh", "Inspect raw receipts"],
+        "next_steps": ["Confirm KOL handles", "Confirm subreddits", "Choose sentiment model"],
+    },
+    "news-flow": {
+        "sources": [
+            {"name": "Google News", "status": "disabled", "mode": "manual", "limit": "RSS/query limit"},
+            {"name": "Company news", "status": "disabled", "mode": "manual", "limit": "per ticker"},
+            {"name": "Macro headlines", "status": "disabled", "mode": "manual", "limit": "per topic"},
+        ],
+        "controls": ["Run headline pull", "Cluster duplicate headlines", "Pin important events"],
+        "next_steps": ["Choose RSS/query path", "Set cache TTL", "Define event categories"],
+    },
+    "research-memo": {
+        "sources": [
+            {"name": "Market", "status": "degraded", "mode": "manual", "limit": "ticker scoped"},
+            {"name": "Sentiment", "status": "disabled", "mode": "manual", "limit": "source scoped"},
+            {"name": "News", "status": "disabled", "mode": "manual", "limit": "headline capped"},
+            {"name": "Macro", "status": "disabled", "mode": "manual", "limit": "daily cache"},
+            {"name": "TradingAgents General+", "status": "manual", "mode": "explicit run", "limit": "user confirmed"},
+        ],
+        "controls": ["Select ticker", "Run quality gate", "Generate PM memo", "Review bull/bear debate"],
+        "next_steps": ["Wire memo schema", "Add confidence scoring", "Add kill-point checklist"],
+    },
+    "macro": {
+        "sources": [
+            {"name": "Rates", "status": "disabled", "mode": "daily cache", "limit": "slow refresh"},
+            {"name": "Commodities", "status": "degraded", "mode": "REST fallback", "limit": "60s refresh"},
+            {"name": "Dollar / FX", "status": "planned", "mode": "daily cache", "limit": "provider TBD"},
+            {"name": "Central banks", "status": "planned", "mode": "manual", "limit": "event only"},
+        ],
+        "controls": ["Refresh regime board", "Map ticker impact", "Review macro risks"],
+        "next_steps": ["Pick macro providers", "Set daily cache path", "Define sector mapping"],
+    },
+    "trading-lab": {
+        "sources": [
+            {"name": "TradingView", "status": "external", "mode": "open on demand", "limit": "no local stream"},
+            {"name": "Candle test data", "status": "planned", "mode": "manual", "limit": "bounded OHLCV"},
+            {"name": "Drawing layer", "status": "planned", "mode": "local only", "limit": "page scoped"},
+            {"name": "Brooks labels", "status": "planned", "mode": "manual", "limit": "test mode"},
+        ],
+        "controls": ["Open TradingView", "Load candle sample", "Draw line", "Tag price action"],
+        "next_steps": ["Choose chart library", "Confirm real-time source", "Define drawing persistence"],
+    },
+    "runtime": {
+        "sources": [
+            {"name": "Local process", "status": "running", "mode": "read-only", "limit": "local only"},
+            {"name": "Provider registry", "status": "manual", "mode": "read-only", "limit": "no start"},
+            {"name": "Cache health", "status": "planned", "mode": "read-only", "limit": "local files"},
+        ],
+        "controls": ["Refresh status", "Inspect provider config", "Stop future tasks", "Clear selected cache"],
+        "next_steps": ["Add task registry", "Add cache inventory", "Add stop buttons"],
+    },
+}
+
+
 def _v2_context(page_id: str) -> dict:
     page = V2_PAGES[page_id]
-    return {"page_id": page_id, **page}
+    state = V2_PAGE_STATE.get(page_id, {})
+    return {"page_id": page_id, "state": state, **page}
 
+
+def _v2_state_payload(page_id: str) -> dict:
+    if page_id not in V2_PAGES:
+        raise HTTPException(status_code=404, detail="Unknown version 2.0 page")
+    return {
+        "page_id": page_id,
+        "title": V2_PAGES[page_id]["title"],
+        "mode": V2_PAGES[page_id]["mode_label"],
+        "guardrail": V2_PAGES[page_id]["guardrail"],
+        **V2_PAGE_STATE.get(page_id, {}),
+    }
+
+
+@router.get("/api/v2/pages/{page_id}/state", summary="Version 2.0 page state")
+async def api_v2_page_state(page_id: str):
+    """Return page-level planning state without starting external providers."""
+    return JSONResponse(content=_v2_state_payload(page_id))
+
+
+@router.get("/api/v2/pages", summary="Version 2.0 page registry")
+async def api_v2_pages():
+    """Return the current version 2.0 page registry for lightweight clients."""
+    return JSONResponse(content={
+        "pages": [
+            {"id": page_id, "title": page["title"], "mode": page["mode_label"]}
+            for page_id, page in V2_PAGES.items()
+        ]
+    })
 
 def _module_status(module_name: str, label: str, install_hint: str = "") -> dict:
     available = importlib.util.find_spec(module_name) is not None
