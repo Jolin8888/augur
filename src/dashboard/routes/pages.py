@@ -1,13 +1,17 @@
 """HTML page routes: all browser-facing GET endpoints that render templates."""
 
+import importlib.util
+import os
+import sys
+import time
 import re
 
 from fastapi import APIRouter, HTTPException, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 
 from augur.config import get_config
 from augur.workspace import get_workspace, resolve_landing_url
-from dashboard.deps import get_registry, templates
+from dashboard.deps import _APP_START_TIME, get_registry, templates
 from dashboard.routes.personas import _persona_meta
 
 router = APIRouter()
@@ -166,6 +170,75 @@ V2_PAGES = {
 def _v2_context(page_id: str) -> dict:
     page = V2_PAGES[page_id]
     return {"page_id": page_id, **page}
+
+
+def _module_status(module_name: str, label: str, install_hint: str = "") -> dict:
+    available = importlib.util.find_spec(module_name) is not None
+    return {
+        "name": label,
+        "status": "available" if available else "missing",
+        "detail": "installed" if available else (install_hint or f"{module_name} is not installed"),
+    }
+
+
+def _env_status(env_name: str, label: str) -> dict:
+    configured = bool(os.environ.get(env_name))
+    return {
+        "name": label,
+        "status": "configured" if configured else "unconfigured",
+        "detail": env_name if configured else f"set {env_name} to enable",
+    }
+
+
+@router.get("/api/v2/runtime/status", summary="Version 2.0 runtime status")
+async def api_v2_runtime_status(request: Request):
+    """Return a lightweight local runtime snapshot.
+
+    This endpoint is intentionally read-only: no external network calls, no
+    background tasks, and no provider initialization.
+    """
+    port = request.url.port or (443 if request.url.scheme == "https" else 80)
+    uptime_seconds = max(0, int(time.time() - _APP_START_TIME))
+    modules = [
+        _module_status("fastapi", "FastAPI"),
+        _module_status("uvicorn", "Uvicorn"),
+        _module_status("websockets", "WebSocket transport", "install uvicorn[standard] or websockets"),
+        _module_status("yfinance", "Market data / yfinance", "install augur-agents[data]"),
+    ]
+    providers = [
+        {"name": "Dashboard", "status": "running", "detail": f"{request.url.scheme}://{request.url.hostname}:{port}"},
+        {"name": "TradingAgents General+", "status": "manual", "detail": "not started from dashboard"},
+        {"name": "Google News", "status": "disabled", "detail": "provider shell only"},
+        {"name": "Reddit", "status": "disabled", "detail": "provider shell only"},
+        {"name": "X / Twitter", "status": "disabled", "detail": "provider shell only"},
+        {"name": "Deep Sync", "status": "disabled", "detail": "provider shell only"},
+        {"name": "TradingView", "status": "disabled", "detail": "Trading Lab shell only"},
+    ]
+    env = [
+        _env_status("X_API_BEARER_TOKEN", "X API"),
+        _env_status("REDDIT_CLIENT_ID", "Reddit API"),
+        _env_status("DEEP_SYNC_API_KEY", "Deep Sync API"),
+        _env_status("FINNHUB_API_KEY", "Finnhub"),
+    ]
+    return JSONResponse(content={
+        "status": "ok",
+        "process": {
+            "pid": os.getpid(),
+            "python": sys.version.split()[0],
+            "uptime_seconds": uptime_seconds,
+            "port": port,
+            "branch": "codex/version-2.0",
+        },
+        "modules": modules,
+        "providers": providers,
+        "environment": env,
+        "guardrails": [
+            "No automatic X/Reddit/News crawling",
+            "No TradingAgents run without manual trigger",
+            "No live candle stream from the dashboard shell",
+            "External providers remain disabled until configured",
+        ],
+    })
 
 
 @router.get("/radar", response_class=HTMLResponse, summary="Version 2.0 market radar shell")

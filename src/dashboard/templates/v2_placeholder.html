@@ -73,6 +73,54 @@
     background: rgba(255,255,255,0.02);
     font-size: 0.78rem;
 }
+.runtime-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.78rem;
+}
+.runtime-table th,
+.runtime-table td {
+    padding: 9px 10px;
+    border-bottom: 1px solid var(--border-color);
+    text-align: left;
+    vertical-align: top;
+}
+.runtime-table th {
+    color: var(--text-muted);
+    font-size: 0.68rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+.runtime-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font-data);
+    font-size: 0.72rem;
+}
+.runtime-status::before {
+    content: "";
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--signal-neutral);
+}
+.runtime-status.running::before,
+.runtime-status.available::before,
+.runtime-status.configured::before,
+.runtime-status.ok::before {
+    background: var(--signal-buy);
+}
+.runtime-status.missing::before,
+.runtime-status.failed::before {
+    background: var(--signal-sell);
+}
+.runtime-status.disabled::before,
+.runtime-status.unconfigured::before,
+.runtime-status.manual::before {
+    background: var(--accent-orange);
+}
 @media (max-width: 980px) {
     .v2-grid { grid-template-columns: 1fr; }
     .v2-wide { grid-column: auto; }
@@ -120,5 +168,81 @@
     <section class="v2-muted-panel">
         Current page is a lightweight shell. Real providers will be connected only after you confirm API keys, refresh limits, and fallback behavior.
     </section>
+
+    {% if page_id == "runtime" %}
+    <section class="v2-card" aria-label="Live runtime status">
+        <div class="flex items-center justify-between mb-12">
+            <h3 style="margin:0;">Live Runtime Check</h3>
+            <button type="button" class="btn btn-sm" onclick="loadRuntimeStatus()">Refresh</button>
+        </div>
+        <div id="runtime-summary" class="v2-muted-panel" style="margin-bottom:12px;">Loading local runtime status...</div>
+        <div style="overflow-x:auto;">
+            <table class="runtime-table" aria-label="Runtime provider status">
+                <thead>
+                    <tr>
+                        <th>Area</th>
+                        <th>Name</th>
+                        <th>Status</th>
+                        <th>Detail</th>
+                    </tr>
+                </thead>
+                <tbody id="runtime-status-body">
+                    <tr><td colspan="4">Waiting for local status...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+    {% endif %}
 </div>
+{% endblock %}
+{% block extra_scripts %}
+{% if page_id == "runtime" %}
+<script>
+function runtimeStatusClass(status) {
+    return String(status || "unknown").toLowerCase().replace(/[^a-z0-9_-]/g, "");
+}
+
+function runtimeRow(area, item) {
+    var status = runtimeStatusClass(item.status);
+    return '<tr>' +
+        '<td>' + area + '</td>' +
+        '<td>' + item.name + '</td>' +
+        '<td><span class="runtime-status ' + status + '">' + item.status + '</span></td>' +
+        '<td>' + item.detail + '</td>' +
+        '</tr>';
+}
+
+function formatUptime(seconds) {
+    seconds = Number(seconds || 0);
+    var mins = Math.floor(seconds / 60);
+    var secs = seconds % 60;
+    if (mins < 1) return secs + 's';
+    return mins + 'm ' + secs + 's';
+}
+
+function loadRuntimeStatus() {
+    var summary = document.getElementById('runtime-summary');
+    var body = document.getElementById('runtime-status-body');
+    summary.textContent = 'Checking local runtime...';
+    fetch('/api/v2/runtime/status', { cache: 'no-store' })
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+            var p = data.process || {};
+            summary.textContent = 'PID ' + p.pid + ' · port ' + p.port + ' · Python ' + p.python + ' · uptime ' + formatUptime(p.uptime_seconds);
+            var rows = [];
+            rows.push(runtimeRow('Process', { name: 'Dashboard process', status: data.status || 'ok', detail: 'branch ' + (p.branch || 'unknown') }));
+            (data.modules || []).forEach(function(item) { rows.push(runtimeRow('Dependency', item)); });
+            (data.providers || []).forEach(function(item) { rows.push(runtimeRow('Provider', item)); });
+            (data.environment || []).forEach(function(item) { rows.push(runtimeRow('API key', item)); });
+            body.innerHTML = rows.join('');
+        })
+        .catch(function(err) {
+            summary.textContent = 'Runtime check failed: ' + err;
+            body.innerHTML = runtimeRow('Runtime', { name: 'Status endpoint', status: 'failed', detail: String(err) });
+        });
+}
+
+loadRuntimeStatus();
+</script>
+{% endif %}
 {% endblock %}
