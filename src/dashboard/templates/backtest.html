@@ -302,6 +302,10 @@
             <div class="bt-banner-label-plain" data-i18n="backtest-banner-days">回测天数</div>
             <div id="bt-result-days" class="bt-banner-value-mono">--</div>
         </div>
+        <div>
+            <div class="bt-banner-label-plain">历史K线源</div>
+            <div id="bt-price-source" class="bt-banner-value-mono">--</div>
+        </div>
     </div>
 </div>
 
@@ -514,6 +518,8 @@ function renderResults(data) {
     document.getElementById('bt-result-ticker').textContent = data.ticker;
     document.getElementById('bt-total-records').textContent = data.total_records;
     document.getElementById('bt-result-days').textContent = data.days;
+    var sourceEl = document.getElementById('bt-price-source');
+    if (sourceEl) sourceEl.textContent = data.price_data_source || data.data_source || 'unknown';
 
     renderMetrics(data);
 

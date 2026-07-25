@@ -511,7 +511,12 @@ class Backtester:
 
         prices = fetch_history(ticker, period=period)
         if not prices or len(prices) < days + 5:
-            raise ValueError(f"Insufficient data for {ticker}: got {len(prices)} days, need at least {days + 5}")
+            detail = getattr(prices, "data_error", "") or "history provider chain returned too few rows"
+            raise ValueError(
+                f"Insufficient data for {ticker}: got {len(prices)} days, "
+                f"need at least {days + 5}. {detail}"
+            )
+        price_data_source = getattr(prices, "data_source", None) or "unknown"
 
         # Build historical_data and forward_returns
         # Use last `days + 60` entries, backtest on first `days`
@@ -573,7 +578,9 @@ class Backtester:
                 "return_60d": round(ret_60d, 5),
             })
 
-        return self.run_backtest(ticker, historical_data, forward_returns, data_source="live")
+        result = self.run_backtest(ticker, historical_data, forward_returns, data_source="live")
+        setattr(result, "price_data_source", price_data_source)
+        return result
 
 
 # ============ Demo Data Generator ============

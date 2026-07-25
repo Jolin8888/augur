@@ -132,8 +132,10 @@
     transform: translateX(62%);
 }
 .tech-ai-box {
-    min-height: 160px;
-    white-space: pre-wrap;
+    min-height: 36px;
+}
+.tech-shell > .tech-grid {
+    display: none;
 }
 .tech-fab {
     position: fixed;
@@ -188,19 +190,19 @@
             <p class="page-lead">TradingView 图表在上，agent 式技术面研判在下。DeepSeek 只在手动点击时运行。</p>
         </div>
         <div class="page-actions">
-            <span class="tech-pill" id="deepseek-status">DeepSeek: checking</span>
-            <span class="tech-pill">No background polling</span>
+            <span class="tech-pill" id="deepseek-status">DeepSeek：检查中</span>
+            <span class="tech-pill">无后台轮询</span>
         </div>
     </header>
 
-    <section class="tech-card" aria-label="Technical analysis controls">
+    <section class="tech-card" aria-label="技术面分析控制区">
         <div class="tech-toolbar">
             <div class="tech-field">
-                <label for="tech-symbol">TradingView symbol</label>
+                <label for="tech-symbol">TradingView 标的</label>
                 <input id="tech-symbol" value="NASDAQ:NVDA" autocomplete="off" spellcheck="false">
             </div>
             <div class="tech-field">
-                <label for="tech-timeframe">Timeframe</label>
+                <label for="tech-timeframe">周期</label>
                 <select id="tech-timeframe">
                     <option value="15">15m</option>
                     <option value="60">1H</option>
@@ -210,11 +212,11 @@
                 </select>
             </div>
             <div class="tech-field">
-                <label for="tech-market">Market profile</label>
+                <label for="tech-market">市场类型</label>
                 <select id="tech-market">
-                    <option value="US" selected>US / 美股</option>
+                    <option value="US" selected>美股 / US</option>
                     <option value="A股">A股</option>
-                    <option value="Crypto">Crypto</option>
+                    <option value="Crypto">加密货币 / Crypto</option>
                     <option value="ETF">ETF</option>
                 </select>
             </div>
@@ -223,7 +225,7 @@
         </div>
     </section>
 
-    <section class="tech-chart-card" aria-label="TradingView technical chart">
+    <section class="tech-chart-card" aria-label="TradingView 技术图表">
         <div class="tech-chart-head">
             <h2 id="chart-title">NASDAQ:NVDA · TradingView</h2>
             <div class="tech-pill-row">
@@ -231,7 +233,7 @@
                 <span class="tech-pill">MACD</span>
                 <span class="tech-pill">RSI</span>
                 <span class="tech-pill">MA / EMA</span>
-                <span class="tech-pill">Volume</span>
+                <span class="tech-pill">成交量 / Volume</span>
             </div>
         </div>
         <div class="tech-chart-wrap">
@@ -239,7 +241,7 @@
         </div>
     </section>
 
-    <section class="tech-card" aria-label="Generated technical report">
+    <section class="tech-card" aria-label="自动生成的技术面报告">
         <div class="tech-card-head" style="padding:0 0 12px;border-bottom:0;">
             <h3>自动技术面报告</h3>
             <span class="tech-pill" id="report-status">等待标的输入</span>
@@ -249,8 +251,34 @@
         </div>
     </section>
 
+    <section class="tech-card" aria-label="DeepSeek 结构化增强">
+        <div class="tech-card-head" style="padding:0 0 12px;border-bottom:0;">
+            <h3>DeepSeek 结构化增强</h3>
+            <span class="tech-pill">点击后填入上方报告表格</span>
+        </div>
+        <p class="tech-note">DeepSeek 不再作为右侧 Markdown 输出。它只负责把已有数据补成结构化 JSON，然后回填到同一套报告表格里；没有 K 线时不会编造指标。</p>
+        <div class="tech-field">
+            <label for="tech-notes">补充指标或观察</label>
+            <textarea id="tech-notes" rows="4" placeholder="可以粘贴 TradingView/MCP 读取到的 OHLC、RSI、MACD、BOLL、VWMA、支撑阻力等数据。"></textarea>
+        </div>
+        <div id="deepseek-output" class="tech-ai-box tech-note" style="margin-top:12px;">等待手动运行。</div>
+    </section>
+
+    <section class="tech-card" aria-label="数据源说明">
+        <h3>数据源说明</h3>
+        <table class="tech-table">
+            <thead><tr><th>模块</th><th>状态</th><th>说明</th></tr></thead>
+            <tbody>
+                <tr><td>TradingView 图表</td><td>可视化已接入</td><td>官方 widget 负责显示 K 线和指标，但 iframe 不把 OHLC/指标值暴露给后端。</td></tr>
+                <tr><td>A 股数据源</td><td>未接入</td><td>a-stock-data 只作为结构化报告思路参考；当前页面不接入它的 A 股接口。</td></tr>
+                <tr><td>美股 K 线</td><td>取决于 Finnhub 权限</td><td>如果 Finnhub candle 无权限，会降级到 quote-only，报告会明确显示缺口。</td></tr>
+                <tr><td>DeepSeek</td><td>手动运行</td><td>只返回结构化 JSON 并填表，不再把整段 Markdown 放到右侧。</td></tr>
+            </tbody>
+        </table>
+    </section>
+
     <div class="tech-grid">
-        <main class="tech-report" aria-label="Technical analysis report framework">
+        <main class="tech-report" aria-label="技术面报告框架">
             <section class="tech-card">
                 <h3>一、基础行情数据</h3>
                 <table class="tech-table">
@@ -298,7 +326,7 @@
                     <tbody>
                         <tr><td>A股</td><td>涨跌停、T+1、换手率、连续跌停风险</td><td>盘中抄底无法当日卖出，跌停附近要额外考虑流动性。</td></tr>
                         <tr><td>美股</td><td>无涨跌停、盘前盘后、财报跳空、期权波动</td><td>高 beta 个股需要重点看 QQQ 是否确认。</td></tr>
-                        <tr><td>Crypto</td><td>24/7、杠杆清算、周末流动性</td><td>极端波动下均线和 RSI 信号容易失真。</td></tr>
+                        <tr><td>加密货币 / Crypto</td><td>24/7、杠杆清算、周末流动性</td><td>极端波动下均线和 RSI 信号容易失真。</td></tr>
                     </tbody>
                 </table>
             </section>
@@ -347,7 +375,7 @@
             </section>
         </main>
 
-        <aside class="tech-report" aria-label="Risk and AI analysis">
+        <aside class="tech-report" aria-label="风险与 AI 研判">
             <section class="tech-card">
                 <h3>九、风险指数</h3>
                 <p class="tech-note">风险由趋势、动能、量价、支撑破位、大盘环境、市场制度、超买/超跌反转风险合成。当前为逻辑层已接入，数值层待 TradingView 指标值接入。</p>
@@ -374,17 +402,17 @@
                 <h3>TradingView 数据接入状态</h3>
                 <p class="tech-note">图表使用 TradingView 官方 widget。后续要读取图上指标值并画线，需要用 TradingView MCP 手动连接真实图表；不会默认后台盯盘。</p>
                 <div class="tech-pill-row">
-                    <span class="tech-pill">Widget: enabled</span>
-                    <span class="tech-pill">MCP: manual</span>
-                    <span class="tech-pill">DeepSeek: manual</span>
+                    <span class="tech-pill">图表组件：已启用</span>
+                    <span class="tech-pill">MCP：手动</span>
+                    <span class="tech-pill">DeepSeek：手动</span>
                 </div>
             </section>
         </aside>
     </div>
 
-    <div class="tech-fab" aria-label="Technical quick actions">
+    <div class="tech-fab" aria-label="技术面快捷操作">
         <button type="button" onclick="loadTradingViewChart()">刷新图</button>
-        <a id="open-tv-link" href="https://www.tradingview.com/chart/?symbol=NASDAQ%3ANVDA" target="_blank" rel="noreferrer">打开 TV</a>
+        <a id="open-tv-link" href="https://www.tradingview.com/chart/?symbol=NASDAQ%3ANVDA" target="_blank" rel="noreferrer">打开 TradingView</a>
         <button type="button" class="primary" onclick="runDeepSeekReport()">DeepSeek</button>
     </div>
 </div>
@@ -401,6 +429,16 @@ function normalizeTvSymbol(raw) {
 
 function tvSymbolUrl(symbol) {
     return 'https://www.tradingview.com/chart/?symbol=' + encodeURIComponent(symbol);
+}
+
+function statusLabel(status) {
+    var labels = {
+        ok: '正常', available: '可用', missing: '缺失', configured: '已配置',
+        unconfigured: '未配置', disabled: '已禁用', degraded: '数据降级',
+        manual: '手动', planned: '计划中', external: '外部加载', ready: '已就绪',
+        running: '运行中', failed: '失败', 手动: '手动', 计划中: '计划中', 外部加载: '外部加载', 已就绪: '已就绪', 运行中: '运行中', 未配置: '未配置', 已禁用: '已禁用'
+    };
+    return labels[String(status || '')] || status || '未知';
 }
 
 function techEscape(value) {
@@ -422,27 +460,56 @@ function listHtml(items) {
     return '<ul>' + (items || []).map(function(item) { return '<li>' + techEscape(item) + '</li>'; }).join('') + '</ul>';
 }
 
+function indicatorDetailsFromSummary(rows) {
+    return (rows || []).map(function(row) {
+        return {
+            title: row.label || row.indicator || '技术指标',
+            table: [{
+                indicator: row.label || row.indicator || '指标',
+                value: row.value || row.signal || '待判断',
+                signal: row.signal || '待判断'
+            }],
+            points: [row.meaning || '等待结构化数据补充。']
+        };
+    });
+}
+
+function renderIndicatorDetails(details, fallbackRows) {
+    var rows = (details && details.length) ? details : indicatorDetailsFromSummary(fallbackRows);
+    return rows.map(function(section, index) {
+        var tableRows = (section.table || []).map(function(row) {
+            return '<tr><td>' + techEscape(row.indicator || row.item || '指标') + '</td><td>' +
+                techEscape(row.value || '待接入') + '</td><td>' + techEscape(row.signal || '待判断') + '</td></tr>';
+        });
+        return '<div class="tech-card" style="margin-top:12px;"><h3>' + (index + 1) + '. ' +
+            techEscape(section.title || '技术指标') + '</h3>' +
+            tableHtml(['指标', '最新值', '信号'], tableRows) +
+            listHtml(section.points || []) + '</div>';
+    }).join('');
+}
+
 function renderGeneratedReport(data) {
     window.currentTechnicalReport = data;
     var host = document.getElementById('generated-report');
     var status = document.getElementById('report-status');
     if (!host) return;
     if (!data || data.status !== 'ok') {
-        status.textContent = 'degraded';
+        status.textContent = '数据降级';
         host.innerHTML = '<p class="tech-note">报告暂时无法完整生成：' + techEscape(data && data.message ? data.message : '暂无数据') + '</p>';
         return;
     }
-    status.textContent = data.snapshot.source + ' · ' + data.snapshot.as_of + ' · risk ' + data.risk.label;
+    var snapshot = data.snapshot || {};
+    var risk = data.risk || { score: 0, label: '待判断' };
+    status.textContent = (snapshot.source || data.data_quality || 'structured') + ' · ' + (snapshot.as_of || 'as-of unknown') + ' · 风险 ' + risk.label;
     var s = data.sections || {};
+    var summary = s.summary || { core: '等待综合研判。', bearish: [], bullish: [], watch: [] };
     var html = '';
     html += '<section class="tech-card"><h3>一、基础行情数据</h3>' +
         tableHtml(['项目', '数值', '研判逻辑'], (s.basic || []).map(function(row) {
             return '<tr><td>' + techEscape(row.item) + '</td><td>' + techEscape(row.value) + '</td><td>' + techEscape(row.meaning) + '</td></tr>';
         })) + '</section>';
     html += '<section class="tech-card"><h3>二、技术指标详细分析</h3>' +
-        tableHtml(['模块', '信号', '技术含义'], (s.indicators || []).map(function(row) {
-            return '<tr><td>' + techEscape(row.label) + '</td><td>' + techEscape(row.signal) + '</td><td>' + techEscape(row.meaning) + '</td></tr>';
-        })) + '</section>';
+        renderIndicatorDetails(s.indicator_details, s.indicators) + '</section>';
     html += '<section class="tech-card"><h3>三、关键支撑位与阻力位</h3><div class="tech-grid">' +
         '<div>' + tableHtml(['支撑级别', '价位', '依据'], (s.support || []).map(function(row) {
             return '<tr><td>' + techEscape(row.level) + '</td><td>' + techEscape(row.price) + '</td><td>' + techEscape(row.basis) + '</td></tr>';
@@ -456,33 +523,33 @@ function renderGeneratedReport(data) {
         })) + '</section>';
     html += '<section class="tech-card"><h3>五、SPY / QQQ 大盘背景</h3>' +
         tableHtml(['对象', '趋势', '状态'], (s.backdrop || []).map(function(row) {
-            return '<tr><td>' + techEscape(row.symbol) + '</td><td>' + techEscape(row.trend) + '</td><td>' + techEscape(row.status) + '</td></tr>';
+            return '<tr><td>' + techEscape(row.symbol) + '</td><td>' + techEscape(row.trend) + '</td><td>' + techEscape(statusLabel(row.status)) + '</td></tr>';
         })) + '</section>';
     html += '<section class="tech-card"><h3>六、综合技术研判结论</h3>' +
-        '<p class="tech-note"><strong>' + techEscape(s.summary.core) + '</strong></p>' +
-        '<h3 style="margin-top:12px;">看空/风险信号</h3>' + listHtml(s.summary.bearish) +
-        '<h3 style="margin-top:12px;">潜在积极信号</h3>' + listHtml(s.summary.bullish) +
+        '<p class="tech-note"><strong>' + techEscape(summary.core) + '</strong></p>' +
+        '<h3 style="margin-top:12px;">看空/风险信号</h3>' + listHtml(summary.bearish) +
+        '<h3 style="margin-top:12px;">潜在积极信号</h3>' + listHtml(summary.bullish) +
         '</section>';
-    html += '<section class="tech-card"><h3>七、操作观察条件</h3>' + listHtml(s.summary.watch) + '</section>';
+    html += '<section class="tech-card"><h3>七、操作观察条件</h3>' + listHtml(summary.watch) + '</section>';
     html += '<section class="tech-card"><h3>八、技术信号汇总表</h3>' +
         tableHtml(['指标', '当前数值', '多空信号', '技术含义'], (s.signals || []).map(function(row) {
             return '<tr><td>' + techEscape(row.indicator) + '</td><td>' + techEscape(row.value) + '</td><td>' + techEscape(row.signal) + '</td><td>' + techEscape(row.meaning) + '</td></tr>';
         })) + '</section>';
     html += '<section class="tech-card"><h3>九、风险指数</h3><p class="tech-note">风险等级：<strong>' +
-        techEscape(data.risk.label) + '</strong> · ' + techEscape(data.risk.score) + '/100</p>' +
-        '<div class="tech-risk-meter"><div class="tech-risk-marker" style="transform:translateX(' + techEscape(data.risk.score) + '%);"></div></div></section>';
+        techEscape(risk.label) + '</strong> · ' + techEscape(risk.score) + '/100</p>' +
+        '<div class="tech-risk-meter"><div class="tech-risk-marker" style="transform:translateX(' + techEscape(risk.score) + '%);"></div></div></section>';
     host.innerHTML = html;
 }
 
 function loadTechnicalReport() {
     var symbol = normalizeTvSymbol(document.getElementById('tech-symbol').value);
     var market = document.getElementById('tech-market').value || 'US';
-    document.getElementById('report-status').textContent = 'loading';
+    document.getElementById('report-status').textContent = '生成中';
     fetch('/api/v2/technical/report?symbol=' + encodeURIComponent(symbol) + '&market_profile=' + encodeURIComponent(market), { cache: 'no-store' })
         .then(function(res) { return res.json(); })
         .then(renderGeneratedReport)
         .catch(function(err) {
-            document.getElementById('report-status').textContent = 'failed';
+            document.getElementById('report-status').textContent = '生成失败';
             document.getElementById('generated-report').innerHTML = '<p class="tech-note">报告生成失败：' + techEscape(err) + '</p>';
         });
 }
@@ -506,7 +573,7 @@ function loadTradingViewChart() {
     container.appendChild(widget);
     var copyright = document.createElement('div');
     copyright.className = 'tradingview-widget-copyright';
-    copyright.innerHTML = '<a href="' + tvSymbolUrl(symbol) + '" rel="noopener nofollow" target="_blank"><span class="blue-text">' + symbol + ' chart</span></a><span class="trademark"> by TradingView</span>';
+    copyright.innerHTML = '<a href="' + tvSymbolUrl(symbol) + '" rel="noopener nofollow" target="_blank"><span class="blue-text">' + symbol + ' 图表</span></a><span class="trademark"> · TradingView 提供</span>';
     container.appendChild(copyright);
     var script = document.createElement('script');
     script.type = 'text/javascript';
@@ -519,7 +586,7 @@ function loadTradingViewChart() {
         timezone: 'exchange',
         theme: 'dark',
         style: '1',
-        locale: 'en',
+        locale: 'zh_CN',
         allow_symbol_change: true,
         hide_side_toolbar: false,
         hide_top_toolbar: false,
@@ -549,10 +616,10 @@ function loadTechnicalStatus() {
         .then(function(res) { return res.json(); })
         .then(function(data) {
             var ds = (data.providers || []).filter(function(p) { return p.name === 'DeepSeek'; })[0];
-            document.getElementById('deepseek-status').textContent = 'DeepSeek: ' + (ds ? ds.status : 'unknown');
+            document.getElementById('deepseek-status').textContent = 'DeepSeek：' + (ds ? statusLabel(ds.status) : '未知');
         })
         .catch(function() {
-            document.getElementById('deepseek-status').textContent = 'DeepSeek: status failed';
+            document.getElementById('deepseek-status').textContent = 'DeepSeek：状态检查失败';
         });
 }
 
@@ -568,7 +635,7 @@ function runDeepSeekReport() {
             timeframe: document.getElementById('tech-timeframe').value || 'D',
             market_profile: document.getElementById('tech-market').value || 'US',
             metrics: {
-                data_source: 'TradingView widget + /api/v2/technical/report',
+                data_source: 'TradingView 图表组件 + /api/v2/technical/report',
                 generated_report: window.currentTechnicalReport || null,
                 required_modules: ['基础行情', '均线系统', 'MACD', 'RSI', 'BOLL', 'VWMA', '支撑阻力', 'SPY/QQQ', '风险指数']
             },
@@ -578,7 +645,12 @@ function runDeepSeekReport() {
         .then(function(res) { return res.json(); })
         .then(function(data) {
             if (data.status === 'ok') {
-                output.textContent = data.report || 'DeepSeek 返回为空。';
+                if (data.report_json) {
+                    renderGeneratedReport(data.report_json);
+                    output.textContent = 'DeepSeek 已返回结构化 JSON，并填入上方报告表格。';
+                } else {
+                    output.textContent = 'DeepSeek 已返回内容，但不是可填表的 JSON。已保留当前表格，不显示原始 Markdown。';
+                }
             } else {
                 output.textContent = (data.message || 'DeepSeek 未配置或请求失败。') + '\n\n当前页面的报告结构和 TradingView 图表已经可用。';
             }

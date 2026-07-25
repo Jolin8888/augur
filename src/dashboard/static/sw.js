@@ -1,4 +1,4 @@
-const CACHE_NAME = 'augur-v9';
+const CACHE_NAME = 'augur-v10-zh';
 const STATIC_ASSETS = [
   '/',
   '/static/css/bloomberg.css',

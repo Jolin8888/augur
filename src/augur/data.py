@@ -20,18 +20,27 @@ Usage:
 仅内部改为走 provider 链。
 """
 
+import json
 import logging
 import math
+import os
 import re
 import threading
 import time
+import urllib.parse
+import urllib.request
 from dataclasses import fields as _dataclass_fields
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
 from augur.personas.base import MarketContext
 
 logger = logging.getLogger(__name__)
+
+_FINNHUB_BASE = "https://finnhub.io/api/v1"
+_ALPHAVANTAGE_BASE = "https://www.alphavantage.co/query"
+_POLYGON_BASE = "https://api.polygon.io"
+_TWELVEDATA_BASE = "https://api.twelvedata.com"
 
 
 # ============ Error UX helpers ============
@@ -467,6 +476,229 @@ def fetch_market_context_batch(tickers: List[str], max_workers: int = 5) -> Dict
     return results
 
 
+def _period_to_days(period: str) -> int:
+    """Translate yfinance-style period labels into a conservative day count."""
+    mapping = {
+        "1d": 5,
+        "5d": 10,
+        "1mo": 45,
+        "3mo": 120,
+        "6mo": 220,
+        "1y": 420,
+        "2y": 800,
+        "5y": 1900,
+        "max": 3650,
+    }
+    return mapping.get((period or "1y").lower(), 420)
+
+
+def _history_row(date_str: str, open_: Any, high: Any, low: Any, close: Any, volume: Any) -> Dict[str, Any]:
+    return {
+        "date": date_str,
+        "open": round(_safe_float(open_), 4),
+        "high": round(_safe_float(high), 4),
+        "low": round(_safe_float(low), 4),
+        "close": round(_safe_float(close), 4),
+        "volume": int(_safe_float(volume)),
+        "change_pct": 0.0,
+    }
+
+
+def _finalize_history_rows(rows: List[Dict[str, Any]], source: str) -> _ResultList:
+    rows = sorted(
+        [row for row in rows if row.get("date") and _safe_float(row.get("close")) > 0],
+        key=lambda row: row["date"],
+    )
+    result: _ResultList = _ResultList()
+    prev_close = None
+    for row in rows:
+        close = _safe_float(row.get("close"))
+        change_pct = (close - prev_close) / prev_close if prev_close and prev_close > 0 else 0.0
+        row["change_pct"] = round(change_pct, 6)
+        prev_close = close
+        result.append(row)
+    result.data_source = source
+    return result
+
+
+def _http_json(url: str, timeout: int = 10) -> Dict[str, Any]:
+    req = urllib.request.Request(url, headers={"User-Agent": "augur-history/1.0"})
+    with urllib.request.urlopen(req, timeout=timeout) as resp:  # noqa: S310
+        return json.loads(resp.read().decode("utf-8", errors="replace"))
+
+
+def _fetch_history_finnhub(ticker: str, period: str) -> _ResultList:
+    api_key = os.environ.get("FINNHUB_API_KEY", "").strip()
+    if not api_key:
+        raise RuntimeError("FINNHUB_API_KEY not configured")
+    end = datetime.now(timezone.utc)
+    start = end - timedelta(days=_period_to_days(period))
+    params = urllib.parse.urlencode({
+        "symbol": ticker,
+        "resolution": "D",
+        "from": int(start.timestamp()),
+        "to": int(end.timestamp()),
+        "token": api_key,
+    })
+    payload = _http_json(f"{_FINNHUB_BASE}/stock/candle?{params}", timeout=10)
+    if payload.get("s") != "ok":
+        raise RuntimeError(f"finnhub candle returned {payload.get('s', 'unknown')}")
+    rows = []
+    times = payload.get("t", []) or []
+    for idx, ts in enumerate(times):
+        try:
+            open_ = (payload.get("o", []) or [])[idx]
+            high = (payload.get("h", []) or [])[idx]
+            low = (payload.get("l", []) or [])[idx]
+            close = (payload.get("c", []) or [])[idx]
+            volume = (payload.get("v", []) or [])[idx]
+        except IndexError:
+            continue
+        rows.append(_history_row(
+            datetime.fromtimestamp(ts, timezone.utc).strftime("%Y-%m-%d"),
+            open_,
+            high,
+            low,
+            close,
+            volume,
+        ))
+    result = _finalize_history_rows(rows, "finnhub")
+    if not result:
+        raise RuntimeError("finnhub returned empty candle history")
+    return result
+
+
+def _fetch_history_alphavantage(ticker: str, period: str) -> _ResultList:
+    api_key = (
+        os.environ.get("ALPHAVANTAGE_API_KEY", "").strip()
+        or os.environ.get("ALPHA_VANTAGE_API_KEY", "").strip()
+    )
+    if not api_key:
+        raise RuntimeError("ALPHAVANTAGE_API_KEY not configured")
+    outputsize = "full" if _period_to_days(period) > 120 else "compact"
+    params = urllib.parse.urlencode({
+        "function": "TIME_SERIES_DAILY_ADJUSTED",
+        "symbol": ticker,
+        "outputsize": outputsize,
+        "apikey": api_key,
+    })
+    payload = _http_json(f"{_ALPHAVANTAGE_BASE}?{params}", timeout=12)
+    if "Note" in payload or "Information" in payload:
+        raise RuntimeError("alphavantage rate-limited or informational response")
+    series = payload.get("Time Series (Daily)") or payload.get("Time Series (Daily Adjusted)")
+    if not isinstance(series, dict) or not series:
+        raise RuntimeError("alphavantage returned no daily time series")
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=_period_to_days(period))).strftime("%Y-%m-%d")
+    rows = []
+    for date_str, item in series.items():
+        if date_str < cutoff:
+            continue
+        rows.append(_history_row(
+            date_str,
+            item.get("1. open"),
+            item.get("2. high"),
+            item.get("3. low"),
+            item.get("5. adjusted close") or item.get("4. close"),
+            item.get("6. volume") or item.get("5. volume"),
+        ))
+    result = _finalize_history_rows(rows, "alphavantage")
+    if not result:
+        raise RuntimeError("alphavantage returned empty usable history")
+    return result
+
+
+def _fetch_history_twelvedata(ticker: str, period: str) -> _ResultList:
+    api_key = os.environ.get("TWELVEDATA_API_KEY", "").strip()
+    if not api_key:
+        raise RuntimeError("TWELVEDATA_API_KEY not configured")
+    outputsize = min(max(_period_to_days(period), 30), 5000)
+    params = urllib.parse.urlencode({
+        "symbol": ticker,
+        "interval": "1day",
+        "outputsize": str(outputsize),
+        "order": "ASC",
+        "apikey": api_key,
+    })
+    payload = _http_json(f"{_TWELVEDATA_BASE}/time_series?{params}", timeout=12)
+    if payload.get("status") == "error" or payload.get("code"):
+        raise RuntimeError(payload.get("message") or "twelvedata returned error")
+    values = payload.get("values")
+    if not isinstance(values, list) or not values:
+        raise RuntimeError("twelvedata returned no time_series values")
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=_period_to_days(period))).strftime("%Y-%m-%d")
+    rows = []
+    for item in values:
+        date_str = str(item.get("datetime", ""))[:10]
+        if date_str < cutoff:
+            continue
+        rows.append(_history_row(
+            date_str,
+            item.get("open"),
+            item.get("high"),
+            item.get("low"),
+            item.get("close"),
+            item.get("volume"),
+        ))
+    result = _finalize_history_rows(rows, "twelvedata")
+    if not result:
+        raise RuntimeError("twelvedata returned empty usable history")
+    return result
+
+
+def _fetch_history_polygon(ticker: str, period: str) -> _ResultList:
+    api_key = os.environ.get("POLYGON_API_KEY", "").strip()
+    if not api_key:
+        raise RuntimeError("POLYGON_API_KEY not configured")
+    end = datetime.now(timezone.utc).date()
+    start = end - timedelta(days=_period_to_days(period))
+    path_symbol = urllib.parse.quote(ticker, safe="")
+    params = urllib.parse.urlencode({
+        "adjusted": "true",
+        "sort": "asc",
+        "limit": "50000",
+        "apiKey": api_key,
+    })
+    url = f"{_POLYGON_BASE}/v2/aggs/ticker/{path_symbol}/range/1/day/{start:%Y-%m-%d}/{end:%Y-%m-%d}?{params}"
+    payload = _http_json(url, timeout=12)
+    if payload.get("status") not in ("OK", "DELAYED"):
+        raise RuntimeError(f"polygon returned {payload.get('status', 'unknown')}: {payload.get('error') or payload.get('message') or ''}")
+    rows = []
+    for item in payload.get("results", []) or []:
+        ts = int(item.get("t", 0)) / 1000
+        rows.append(_history_row(
+            datetime.fromtimestamp(ts, timezone.utc).strftime("%Y-%m-%d"),
+            item.get("o"),
+            item.get("h"),
+            item.get("l"),
+            item.get("c"),
+            item.get("v"),
+        ))
+    result = _finalize_history_rows(rows, "polygon")
+    if not result:
+        raise RuntimeError("polygon returned empty aggregate history")
+    return result
+
+
+def _fetch_history_fallback(ticker: str, period: str, errors: List[str]) -> _ResultList:
+    for name, fetcher in (
+        ("finnhub", _fetch_history_finnhub),
+        ("twelvedata", _fetch_history_twelvedata),
+        ("alphavantage", _fetch_history_alphavantage),
+        ("polygon", _fetch_history_polygon),
+    ):
+        try:
+            return fetcher(ticker, period)
+        except Exception as exc:
+            msg = f"{name}: {exc}"
+            logger.warning("history fallback failed for %s via %s: %s", ticker, name, exc)
+            errors.append(msg)
+    return _attach_error(
+        _ResultList(),
+        f"all history providers failed for {ticker}: " + "; ".join(errors),
+        source="none",
+    )
+
+
 def fetch_history(ticker: str, period: str = "1y", force_refresh: bool = False) -> List[Dict[str, Any]]:
     """
     Fetch historical price data.
@@ -501,51 +733,53 @@ def fetch_history(ticker: str, period: str = "1y", force_refresh: bool = False) 
                 cached = _ResultList(cached)
             return cached
 
+    errors: List[str] = []
+
     try:
         yf = _get_yfinance()
     except Exception as exc:
         msg = f"yfinance_unavailable: {exc}"
         logger.warning("history: yfinance unavailable: %s", exc)
-        return _attach_error(_ResultList(), msg, source="error")
+        errors.append(msg)
+    else:
+        stock = yf.Ticker(ticker)
 
-    stock = yf.Ticker(ticker)
+        try:
+            hist = stock.history(period=period)
+        except Exception as exc:
+            msg = f"yfinance network_error: failed to fetch history for {ticker}: {exc}"
+            logger.warning("history: network error for %s: %s", ticker, exc)
+            errors.append(msg)
+        else:
+            if hist is not None and not hist.empty:
+                results: _ResultList = _ResultList()
+                prev_close = None
+                for date_idx, row in hist.iterrows():
+                    # safe_num 防止 yfinance 偶发的 NaN 行污染历史序列
+                    close = safe_num(row.get("Close", 0))
+                    change_pct = 0.0
+                    if prev_close and prev_close > 0:
+                        change_pct = (close - prev_close) / prev_close
+                    prev_close = close
 
-    try:
-        hist = stock.history(period=period)
-    except Exception as exc:
-        msg = f"network_error: failed to fetch history for {ticker}: {exc}"
-        logger.warning("history: network error for %s: %s", ticker, exc)
-        return _attach_error(_ResultList(), msg, source="error")
+                    results.append({
+                        "date": date_idx.strftime("%Y-%m-%d"),
+                        "open": round(safe_num(row.get("Open", 0)), 4),
+                        "high": round(safe_num(row.get("High", 0)), 4),
+                        "low": round(safe_num(row.get("Low", 0)), 4),
+                        "close": round(close, 4),
+                        "volume": int(safe_num(row.get("Volume", 0))),
+                        "change_pct": round(change_pct, 6),
+                    })
+                results.data_source = "yfinance"
+                _cache_set(cache_key, results)
+                return results
+            errors.append(f"yfinance no_data: {ticker} returned empty history for period={period}")
 
-    if hist is None or hist.empty:
-        return _attach_error(
-            _ResultList(),
-            f"no_data: {ticker} returned empty history for period={period}",
-            source="yfinance",
-        )
-
-    results: _ResultList = _ResultList()
-    prev_close = None
-    for date_idx, row in hist.iterrows():
-        # safe_num 防止 yfinance 偶发的 NaN 行污染历史序列
-        close = safe_num(row.get("Close", 0))
-        change_pct = 0.0
-        if prev_close and prev_close > 0:
-            change_pct = (close - prev_close) / prev_close
-        prev_close = close
-
-        results.append({
-            "date": date_idx.strftime("%Y-%m-%d"),
-            "open": round(safe_num(row.get("Open", 0)), 4),
-            "high": round(safe_num(row.get("High", 0)), 4),
-            "low": round(safe_num(row.get("Low", 0)), 4),
-            "close": round(close, 4),
-            "volume": int(safe_num(row.get("Volume", 0))),
-            "change_pct": round(change_pct, 6),
-        })
-
-    _cache_set(cache_key, results)
-    return results
+    fallback = _fetch_history_fallback(ticker, period, errors)
+    if fallback:
+        _cache_set(cache_key, fallback)
+    return fallback
 
 
 def calculate_technicals(prices: List[Dict]) -> Dict[str, Any]:

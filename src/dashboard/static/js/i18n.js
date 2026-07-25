@@ -2378,32 +2378,22 @@ window.I18N = {
 
 (function() {
     var _currentLang = 'zh';
-    // Language cycle order and label for the toggle button (shows *next* lang)
-    var _LANG_CYCLE = ['zh', 'en', 'ja', 'ko'];
-    var _LANG_NEXT_LABEL = { zh: 'EN', en: '\u65E5', ja: '\uD55C', ko: '\u4E2D' };
-    var _LANG_HTML_ATTR = { zh: 'zh-CN', en: 'en', ja: 'ja', ko: 'ko' };
+    // 中文优先：Jolin 版本当前固定为中文界面。保留专有名词，不再自动切到英文。
+    var _LANG_CYCLE = ['zh'];
+    var _LANG_NEXT_LABEL = { zh: '中' };
+    var _LANG_HTML_ATTR = { zh: 'zh-CN' };
     // Banner: en uses EN banner, others use zh banner
     var _LANG_BANNER = { en: '/docs/images/hero-banner-en.svg' };
 
     function initI18n() {
-        var saved = localStorage.getItem('augur-lang');
-        if (saved && _LANG_CYCLE.indexOf(saved) !== -1) {
-            _currentLang = saved;
-        } else {
-            var navLang = (navigator.language || navigator.userLanguage || 'zh').toLowerCase();
-            if (navLang.startsWith('zh')) _currentLang = 'zh';
-            else if (navLang.startsWith('ja')) _currentLang = 'ja';
-            else if (navLang.startsWith('ko')) _currentLang = 'ko';
-            else _currentLang = 'en';
-        }
-        applyLanguage(_currentLang);
+        _currentLang = 'zh';
+        try { localStorage.setItem('augur-lang', 'zh'); } catch(e) {}
+        applyLanguage('zh');
     }
 
-    // Fallback chain: current lang \u2192 en \u2192 zh
+    // 中文优先回退：不再用英文词典覆盖页面内容。
     function _getVal(key, dict) {
         if (dict[key] !== undefined) return dict[key];
-        var en = window.I18N['en'] || {};
-        if (en[key] !== undefined) return en[key];
         var zh = window.I18N['zh'] || {};
         return zh[key];
     }
@@ -2452,7 +2442,7 @@ window.I18N = {
         if (twImg) twImg.setAttribute('content', bannerImg);
         // Update lang toggle button label (shows next language in cycle)
         var langLabel = document.getElementById('lang-label');
-        if (langLabel) langLabel.textContent = _LANG_NEXT_LABEL[lang] || 'EN';
+        if (langLabel) langLabel.textContent = _LANG_NEXT_LABEL[lang] || '中';
         // Sync theme toggle label with current language
         if (typeof updateThemeUI === 'function') updateThemeUI();
         // Sync connection status text if health check ran
@@ -2480,10 +2470,8 @@ window.I18N = {
     }
 
     function toggleLanguage() {
-        var idx = _LANG_CYCLE.indexOf(_currentLang);
-        var newLang = _LANG_CYCLE[(idx + 1) % _LANG_CYCLE.length];
-        localStorage.setItem('augur-lang', newLang);
-        applyLanguage(newLang);
+        try { localStorage.setItem('augur-lang', 'zh'); } catch(e) {}
+        applyLanguage('zh');
     }
 
     // Expose globally

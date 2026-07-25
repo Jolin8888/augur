@@ -109,6 +109,7 @@ async def api_run_backtest(
         "initial_capital": initial_capital,
         "strategy": strategy,
         "data_source": data_source,
+        "price_data_source": getattr(result, "price_data_source", data_source),
         "total_records": len(result.records),
         "consensus_ic": result.consensus_ic,
         "agent_ics": [a.to_dict() for a in result.agent_ics],

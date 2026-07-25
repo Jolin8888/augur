@@ -88,99 +88,99 @@ async def scanner_page(request: Request):
 
 V2_PAGES = {
     "radar": {
-        "title": "Market Radar",
-        "heading": "Market Radar",
-        "description": "SpikePanel-style market intelligence board for watchlists, factor signals, news heat, Reddit heat, X attention, and options flow.",
-        "mode_label": "Framework shell",
-        "guardrail": "This page is only the version 2.0 entry point. It does not fetch X, Reddit, Google News, TradingAgents, or real-time market data yet.",
+        "title": "市场雷达",
+        "heading": "市场雷达",
+        "description": "参考 SpikePanel 的市场情报看板，用于汇总自选股、因子信号、新闻热度、Reddit 热度、X 关注度和期权资金流。",
+        "mode_label": "框架占位",
+        "guardrail": "这个页面目前只是版本 2.0 入口，不会自动抓取 X、Reddit、Google News、TradingAgents 或实时行情。",
         "cards": [
-            {"title": "Signal Table", "body": "A dense radar table for tickers, scores, market move, source counts, and freshness.", "bullets": ["price and trend", "news count", "sentiment badge", "source receipts"], "wide": True},
-            {"title": "Provider Status", "body": "Each data source will report idle, running, failed, or rate-limited.", "bullets": ["market", "news", "reddit", "x/twitter"]},
-            {"title": "Manual Refresh", "body": "Refresh will stay user-controlled, with limits for tickers and source items.", "bullets": ["max tickers", "max headlines", "cooldown"]},
+            {"title": "信号表", "body": "密集展示标的、评分、市场变化、来源数量和数据新鲜度。", "bullets": ["价格与趋势", "新闻数量", "情绪标签", "来源凭证"], "wide": True},
+            {"title": "数据源状态", "body": "每个数据源都会显示空闲、运行中、失败或限流状态。", "bullets": ["市场", "新闻", "Reddit", "X / Twitter"]},
+            {"title": "手动刷新", "body": "刷新保持由你手动控制，并限制标的数量和来源条数。", "bullets": ["最多标的数", "最多标题数", "冷却时间"]},
         ],
     },
     "sentiment": {
-        "title": "Sentiment",
-        "heading": "Market Sentiment",
-        "description": "A controlled view of X, Reddit, and news tone without starting any crawler by default.",
-        "mode_label": "Providers disabled",
-        "guardrail": "Social and news providers will be opt-in. The page will show what is configured before any external request is made.",
+        "title": "市场情绪",
+        "heading": "市场情绪",
+        "description": "受控查看 X、Reddit 和新闻语气，默认不启动任何爬取。",
+        "mode_label": "数据源未启用",
+        "guardrail": "社交与新闻数据源都需要主动启用；页面会先显示配置状态，再发起外部请求。",
         "cards": [
-            {"title": "X / Twitter", "body": "Track selected KOLs, cashtags, and credible source posts when API access is configured.", "bullets": ["cashtag search", "KOL watchlist", "source links"]},
-            {"title": "Reddit", "body": "Summarize subreddit activity, mentions, and top posts with rate-limit visibility.", "bullets": ["mentions", "top posts", "rate-limit status"]},
-            {"title": "Sentiment Score", "body": "Keep sentiment separate from valuation and market factors so the dashboard does not become a black box.", "bullets": ["bull", "bear", "mixed", "no data"]},
+            {"title": "X / Twitter", "body": "配置 API 后跟踪指定 KOL、股票标签和可信来源帖子。", "bullets": ["股票标签搜索", "KOL 观察名单", "来源链接"]},
+            {"title": "Reddit", "body": "汇总 subreddit 活跃度、提及次数和热门帖子，并显示限流状态。", "bullets": ["提及次数", "热门帖子", "限流状态"]},
+            {"title": "情绪评分", "body": "情绪评分与估值、市场因素分开展示，避免页面变成黑箱。", "bullets": ["看多", "看空", "分歧", "无数据"]},
         ],
     },
     "news-flow": {
-        "title": "News Flow",
-        "heading": "News Flow",
-        "description": "Google News headlines and company/event news streams with source receipts.",
-        "mode_label": "RSS not connected",
-        "guardrail": "News refresh will be cached and limited. No background polling is active in this shell.",
+        "title": "新闻流",
+        "heading": "新闻流",
+        "description": "Google News 标题、公司新闻和事件流，并保留来源凭证。",
+        "mode_label": "RSS 未连接",
+        "guardrail": "新闻刷新会缓存并限制数量；当前框架没有后台轮询。",
         "cards": [
-            {"title": "Google News", "body": "Ticker-focused headline feeds with source, timestamp, and linked receipt.", "bullets": ["ticker query", "sector query", "macro query"]},
-            {"title": "Event Clusters", "body": "Group repeated headlines into one event so the page stays readable.", "bullets": ["earnings", "guidance", "regulatory", "product"]},
-            {"title": "AI Summary", "body": "Summaries will cite source headlines and remain optional.", "bullets": ["facts first", "no advice", "traceable"]},
+            {"title": "Google News", "body": "围绕标的聚合标题，并展示来源、时间和链接凭证。", "bullets": ["标的查询", "行业查询", "宏观查询"]},
+            {"title": "事件聚类", "body": "把重复标题合并成同一事件，保持页面可读。", "bullets": ["财报", "指引", "监管", "产品"]},
+            {"title": "AI 摘要", "body": "摘要会引用来源标题，并保持可选。", "bullets": ["事实优先", "不做建议", "可追溯"]},
         ],
     },
     "research-memo": {
-        "title": "Research Memo",
-        "heading": "Research Memo",
-        "description": "TradingAgents General+ dimensions compressed into a readable PM memo surface.",
-        "mode_label": "Manual analysis only",
-        "guardrail": "TradingAgents will not run automatically. It will require a manual button, ticker selection, and visible runtime status.",
+        "title": "研报笔记",
+        "heading": "研报笔记",
+        "description": "把 TradingAgents General+ 的分析维度压缩成可读的 PM 备忘录。",
+        "mode_label": "仅手动分析",
+        "guardrail": "TradingAgents 不会自动运行；必须手动点击、选择标的，并显示运行状态。",
         "cards": [
-            {"title": "7 Analyst Dimensions", "body": "Market, Sentiment, News, Fundamentals, Macro, Flow, and Catalyst become memo sections.", "bullets": ["quality gate", "bull vs bear", "PM memo"], "wide": True},
-            {"title": "Data Gaps", "body": "Missing Reddit, macro, or research data will lower confidence instead of pretending certainty.", "bullets": ["NO_DATA", "rate limited", "unconfigured"]},
-            {"title": "Output", "body": "Final memo stays compact: bias, confidence, thesis, prove points, kill points, and monitoring items."},
+            {"title": "七个分析维度", "body": "市场、情绪、新闻、基本面、宏观、资金流和催化剂会成为备忘录章节。", "bullets": ["质量门控", "多空辩论", "PM 备忘录"], "wide": True},
+            {"title": "数据缺口", "body": "缺少 Reddit、宏观或研报数据时会降低置信度，不假装确定。", "bullets": ["NO_DATA", "被限流", "未配置"]},
+            {"title": "输出", "body": "最终备忘录保持紧凑：方向、置信度、核心论点、验证点、否定点和观察项。"},
         ],
     },
     "macro": {
-        "title": "Macro",
-        "heading": "Macro Monitor",
-        "description": "Rates, inflation, commodities, dollar, central banks, and sector regime context.",
-        "mode_label": "Snapshot shell",
-        "guardrail": "Macro providers will refresh slowly by design and should never block the dashboard.",
+        "title": "宏观面",
+        "heading": "宏观监控",
+        "description": "跟踪利率、通胀、大宗商品、美元、央行和行业风格环境。",
+        "mode_label": "快照框架",
+        "guardrail": "宏观数据源设计为低频刷新，不会阻塞仪表盘。",
         "cards": [
-            {"title": "Regime Board", "body": "A compact board for rates, dollar, oil, yields, inflation, and risk appetite.", "bullets": ["daily cache", "event flags", "sector impact"]},
-            {"title": "Ticker Impact", "body": "Map macro pressure to tickers and sectors without turning it into an opaque score.", "bullets": ["tailwind", "headwind", "neutral"]},
-            {"title": "Provider Health", "body": "FRED or other macro failures will show clearly in Runtime Status."},
+            {"title": "环境面板", "body": "紧凑展示利率、美元、油价、收益率、通胀和风险偏好。", "bullets": ["每日缓存", "事件标记", "行业影响"]},
+            {"title": "标的影响", "body": "把宏观压力映射到标的和行业，但不做黑箱分数。", "bullets": ["顺风", "逆风", "中性"]},
+            {"title": "数据源健康度", "body": "FRED 或其他宏观数据源失败时，会在运行状态里明确显示。"},
         ],
     },
     "trading-lab": {
-        "title": "Trading Lab",
-        "heading": "Trading Lab",
-        "description": "TradingView, candle testing, Brooks-style price action labels, and drawing experiments.",
-        "mode_label": "No live feed",
-        "guardrail": "This page will load only when opened. It will not start a real-time market stream from the main dashboard.",
+        "title": "交易实验室",
+        "heading": "交易实验室",
+        "description": "TradingView、K 线测试、Brooks price action 标签和画线实验。",
+        "mode_label": "无实时流",
+        "guardrail": "该页面只在打开时加载，不会从主仪表盘启动实时行情流。",
         "cards": [
-            {"title": "TradingView", "body": "Embed when possible; otherwise open TradingView with the current ticker and timeframe.", "bullets": ["embed fallback", "open external", "no forced login"]},
-            {"title": "Candle Layer", "body": "Prepare OHLCV and drawing interfaces before choosing a real-time data source.", "bullets": ["timeframe", "support/resistance", "trend lines"], "wide": True},
-            {"title": "Brooks Action", "body": "Future labels for trend, range, breakout, pullback, wedge, and signal bars."},
+            {"title": "TradingView", "body": "能嵌入就嵌入；否则用当前标的和周期打开 TradingView。", "bullets": ["嵌入降级", "外部打开", "不强制登录"]},
+            {"title": "K 线层", "body": "先准备 OHLCV 和画线接口，再选择实时数据源。", "bullets": ["周期", "支撑/阻力", "趋势线"], "wide": True},
+            {"title": "Brooks 价格行为", "body": "后续标注趋势、震荡、突破、回踩、楔形和信号 K。"},
         ],
     },
     "technical-analysis": {
         "title": "技术面分析",
         "heading": "技术面分析",
         "description": "TradingView 图表 + agent 式技术面研判报告，覆盖行情、均线、MACD、RSI、布林带、VWMA、支撑阻力、市场规则、SPY/QQQ 大盘背景和风险指数。",
-        "mode_label": "TradingView chart",
+        "mode_label": "TradingView 图表",
         "guardrail": "页面打开时只加载 TradingView 图表。DeepSeek 研判必须手动触发，且需要 DEEPSEEK_API_KEY。",
         "cards": [
-            {"title": "基础行情", "body": "收盘价、涨跌幅、阶段涨跌、5/20日均量、量比和量价背离提示。", "bullets": ["close", "change", "volume ratio"]},
+            {"title": "基础行情", "body": "收盘价、涨跌幅、阶段涨跌、5/20日均量、量比和量价背离提示。", "bullets": ["收盘价", "涨跌幅", "量比"]},
             {"title": "技术指标", "body": "均线、MACD、RSI、布林带、VWMA 逐项拆解，保留多空信号和技术含义。", "bullets": ["EMA/SMA", "MACD", "RSI", "BOLL", "VWMA"], "wide": True},
-            {"title": "大盘共振", "body": "SPY/QQQ 与主标的放在同一套趋势框架里判断，避免只看个股。", "bullets": ["SPY", "QQQ", "trend alignment"]},
+            {"title": "大盘共振", "body": "SPY/QQQ 与主标的放在同一套趋势框架里判断，避免只看个股。", "bullets": ["SPY", "QQQ", "趋势共振"]},
         ],
     },
     "runtime": {
-        "title": "Runtime Status",
-        "heading": "Runtime Status",
-        "description": "A visible control room for ports, providers, cache freshness, and task state.",
-        "mode_label": "Local service visible",
-        "guardrail": "This is where heavy work will become observable before it is allowed to run.",
+        "title": "运行状态",
+        "heading": "运行状态",
+        "description": "可见的控制室，用来查看端口、数据源、缓存新鲜度和任务状态。",
+        "mode_label": "本地服务可见",
+        "guardrail": "所有重任务在允许运行前都要先在这里变得可见。",
         "cards": [
-            {"title": "Local Server", "body": "Show the current dashboard port, process, uptime, and recent errors.", "bullets": ["port 8000", "uvicorn", "last health check"]},
-            {"title": "Providers", "body": "Every external provider gets a visible state and error reason.", "bullets": ["disabled", "idle", "running", "failed", "rate limited"], "wide": True},
-            {"title": "Controls", "body": "Future controls will stop tasks, clear caches, and set refresh limits."},
+            {"title": "本地服务", "body": "显示当前仪表盘端口、进程、运行时间和最近错误。", "bullets": ["端口 8000", "uvicorn", "最近健康检查"]},
+            {"title": "数据源", "body": "每个外部数据源都会显示状态和错误原因。", "bullets": ["已禁用", "空闲", "运行中", "失败", "被限流"], "wide": True},
+            {"title": "控制项", "body": "后续控制项会支持停止任务、清理缓存和设置刷新限制。"},
         ],
     },
 }
@@ -189,83 +189,114 @@ V2_PAGES = {
 V2_PAGE_STATE = {
     "radar": {
         "sources": [
-            {"name": "Market snapshot", "status": "degraded", "mode": "REST fallback", "limit": "60s refresh"},
-            {"name": "News heat", "status": "disabled", "mode": "manual", "limit": "50 headlines"},
-            {"name": "Social heat", "status": "disabled", "mode": "manual", "limit": "25 posts"},
-            {"name": "Options / flow", "status": "planned", "mode": "manual", "limit": "provider TBD"},
+            {"name": "市场快照", "status": "degraded", "mode": "REST 降级", "limit": "60 秒刷新"},
+            {"name": "新闻热度", "status": "已禁用", "mode": "手动", "limit": "最多 50 条标题"},
+            {"name": "社交热度", "status": "已禁用", "mode": "手动", "limit": "最多 25 条帖子"},
+            {"name": "期权 / 资金流", "status": "计划中", "mode": "手动", "limit": "待确认数据源"},
         ],
-        "controls": ["Choose watchlist", "Refresh snapshot", "Open source receipts", "Export memo inputs"],
-        "next_steps": ["Pick first tickers", "Confirm providers", "Set per-refresh limits"],
+        "controls": ["选择自选股", "刷新快照", "打开来源凭证", "导出备忘录输入"],
+        "next_steps": ["先选择第一批标的", "确认数据源", "设置单次刷新限制"],
     },
     "sentiment": {
         "sources": [
-            {"name": "X / Twitter KOLs", "status": "unconfigured", "mode": "manual", "limit": "API key required"},
-            {"name": "Reddit posts", "status": "unconfigured", "mode": "manual", "limit": "API key required"},
-            {"name": "Google News tone", "status": "disabled", "mode": "cache-first", "limit": "50 headlines"},
+            {"name": "X / Twitter KOL 账号", "status": "未配置", "mode": "手动", "limit": "需要 API key"},
+            {"name": "Reddit 帖子", "status": "未配置", "mode": "手动", "limit": "需要 API key"},
+            {"name": "Google News 语气", "status": "已禁用", "mode": "优先缓存", "limit": "最多 50 条标题"},
         ],
-        "controls": ["Edit KOL list", "Edit subreddit list", "Run sentiment refresh", "Inspect raw receipts"],
-        "next_steps": ["Confirm KOL handles", "Confirm subreddits", "Choose sentiment model"],
+        "controls": ["编辑 KOL 列表", "编辑 subreddit 列表", "刷新情绪数据", "查看原始凭证"],
+        "next_steps": ["确认 KOL 账号", "确认 subreddit", "选择情绪模型"],
     },
     "news-flow": {
         "sources": [
-            {"name": "Google News", "status": "disabled", "mode": "manual", "limit": "RSS/query limit"},
-            {"name": "Company news", "status": "disabled", "mode": "manual", "limit": "per ticker"},
-            {"name": "Macro headlines", "status": "disabled", "mode": "manual", "limit": "per topic"},
+            {"name": "Google News", "status": "已禁用", "mode": "手动", "limit": "RSS / 查询限制"},
+            {"name": "公司新闻", "status": "已禁用", "mode": "手动", "limit": "按标的限制"},
+            {"name": "宏观标题", "status": "已禁用", "mode": "手动", "limit": "按主题限制"},
         ],
-        "controls": ["Run headline pull", "Cluster duplicate headlines", "Pin important events"],
-        "next_steps": ["Choose RSS/query path", "Set cache TTL", "Define event categories"],
+        "controls": ["拉取新闻标题", "合并重复标题", "固定重要事件"],
+        "next_steps": ["选择 RSS / 查询路径", "设置缓存时间", "定义事件分类"],
     },
     "research-memo": {
         "sources": [
-            {"name": "Market", "status": "degraded", "mode": "manual", "limit": "ticker scoped"},
-            {"name": "Sentiment", "status": "disabled", "mode": "manual", "limit": "source scoped"},
-            {"name": "News", "status": "disabled", "mode": "manual", "limit": "headline capped"},
-            {"name": "Macro", "status": "disabled", "mode": "manual", "limit": "daily cache"},
-            {"name": "TradingAgents General+", "status": "manual", "mode": "explicit run", "limit": "user confirmed"},
+            {"name": "市场面", "status": "degraded", "mode": "手动", "limit": "按标的限定"},
+            {"name": "情绪面", "status": "已禁用", "mode": "手动", "limit": "按来源限定"},
+            {"name": "新闻面", "status": "已禁用", "mode": "手动", "limit": "限制标题数量"},
+            {"name": "宏观面", "status": "已禁用", "mode": "手动", "limit": "每日缓存"},
+            {"name": "TradingAgents General+", "status": "手动", "mode": "显式手动运行", "limit": "用户确认后运行"},
         ],
-        "controls": ["Select ticker", "Run quality gate", "Generate PM memo", "Review bull/bear debate"],
-        "next_steps": ["Wire memo schema", "Add confidence scoring", "Add kill-point checklist"],
+        "controls": ["选择标的", "运行质量门控", "生成 PM 备忘录", "查看多空辩论"],
+        "next_steps": ["接入备忘录结构", "加入置信度评分", "加入否定点清单"],
     },
     "macro": {
         "sources": [
-            {"name": "Rates", "status": "disabled", "mode": "daily cache", "limit": "slow refresh"},
-            {"name": "Commodities", "status": "degraded", "mode": "REST fallback", "limit": "60s refresh"},
-            {"name": "Dollar / FX", "status": "planned", "mode": "daily cache", "limit": "provider TBD"},
-            {"name": "Central banks", "status": "planned", "mode": "manual", "limit": "event only"},
+            {"name": "利率", "status": "已禁用", "mode": "每日缓存", "limit": "低频刷新"},
+            {"name": "大宗商品", "status": "degraded", "mode": "REST 降级", "limit": "60 秒刷新"},
+            {"name": "美元 / 外汇", "status": "计划中", "mode": "每日缓存", "limit": "待确认数据源"},
+            {"name": "央行", "status": "计划中", "mode": "手动", "limit": "仅事件触发"},
         ],
-        "controls": ["Refresh regime board", "Map ticker impact", "Review macro risks"],
-        "next_steps": ["Pick macro providers", "Set daily cache path", "Define sector mapping"],
+        "controls": ["刷新宏观环境面板", "映射标的影响", "查看宏观风险"],
+        "next_steps": ["选择宏观数据源", "设置每日缓存路径", "定义行业映射"],
     },
     "trading-lab": {
         "sources": [
-            {"name": "TradingView", "status": "external", "mode": "open on demand", "limit": "no local stream"},
-            {"name": "Candle test data", "status": "planned", "mode": "manual", "limit": "bounded OHLCV"},
-            {"name": "Drawing layer", "status": "planned", "mode": "local only", "limit": "page scoped"},
-            {"name": "Brooks labels", "status": "planned", "mode": "manual", "limit": "test mode"},
+            {"name": "TradingView", "status": "外部加载", "mode": "按需打开", "limit": "无本地实时流"},
+            {"name": "K 线测试数据", "status": "计划中", "mode": "手动", "limit": "受限 OHLCV"},
+            {"name": "画线层", "status": "计划中", "mode": "仅本地", "limit": "仅当前页面"},
+            {"name": "Brooks 标签", "status": "计划中", "mode": "手动", "limit": "测试模式"},
         ],
-        "controls": ["Open TradingView", "Load candle sample", "Draw line", "Tag price action"],
-        "next_steps": ["Choose chart library", "Confirm real-time source", "Define drawing persistence"],
+        "controls": ["打开 TradingView", "加载 K 线样本", "画线", "标记价格行为"],
+        "next_steps": ["选择图表库", "确认实时数据源", "定义画线保存方式"],
     },
     "technical-analysis": {
         "sources": [
-            {"name": "TradingView widget", "status": "external", "mode": "page load", "limit": "only this page"},
-            {"name": "Indicator logic", "status": "ready", "mode": "local rules", "limit": "no API call"},
-            {"name": "SPY / QQQ backdrop", "status": "planned", "mode": "TradingView chart", "limit": "manual refresh"},
-            {"name": "DeepSeek report", "status": "unconfigured", "mode": "manual POST", "limit": "requires API key"},
+            {"name": "TradingView 图表组件", "status": "外部加载", "mode": "页面加载时", "limit": "仅此页面"},
+            {"name": "指标逻辑", "status": "已就绪", "mode": "本地规则", "limit": "不调用 API"},
+            {"name": "SPY / QQQ 大盘背景", "status": "计划中", "mode": "TradingView 图表", "limit": "手动刷新"},
+            {"name": "DeepSeek 研判报告", "status": "未配置", "mode": "手动提交", "limit": "需要 API key"},
         ],
-        "controls": ["Load TradingView chart", "Open TradingView", "Run DeepSeek report", "Review support/resistance"],
-        "next_steps": ["Connect TradingView MCP values", "Persist indicator snapshots", "Add broker/market rule profiles"],
+        "controls": ["加载 TradingView 图表", "打开 TradingView", "运行 DeepSeek 报告", "查看支撑 / 阻力"],
+        "next_steps": ["接入 TradingView MCP 指标值", "保存指标快照", "加入券商 / 市场规则配置"],
     },
     "runtime": {
         "sources": [
-            {"name": "Local process", "status": "running", "mode": "read-only", "limit": "local only"},
-            {"name": "Provider registry", "status": "manual", "mode": "read-only", "limit": "no start"},
-            {"name": "Cache health", "status": "planned", "mode": "read-only", "limit": "local files"},
+            {"name": "本地进程", "status": "运行中", "mode": "只读", "limit": "仅本地"},
+            {"name": "数据源注册表", "status": "手动", "mode": "只读", "limit": "不启动任务"},
+            {"name": "缓存健康度", "status": "计划中", "mode": "只读", "limit": "本地文件"},
         ],
-        "controls": ["Refresh status", "Inspect provider config", "Stop future tasks", "Clear selected cache"],
-        "next_steps": ["Add task registry", "Add cache inventory", "Add stop buttons"],
+        "controls": ["刷新状态", "查看数据源配置", "停止后续任务", "清理选中缓存"],
+        "next_steps": ["加入任务注册表", "加入缓存清单", "加入停止按钮"],
     },
 }
+
+
+STATUS_LABELS = {
+    "ok": "正常",
+    "available": "可用",
+    "missing": "缺失",
+    "configured": "已配置",
+    "unconfigured": "未配置",
+    "disabled": "已禁用",
+    "degraded": "数据降级",
+    "manual": "手动",
+    "planned": "计划中",
+    "external": "外部加载",
+    "ready": "已就绪",
+    "running": "运行中",
+    "failed": "失败",
+}
+
+
+def _status_label(status: object) -> str:
+    value = str(status or "unknown")
+    return STATUS_LABELS.get(value, value)
+
+
+def _with_status_labels(state: dict) -> dict:
+    payload = dict(state or {})
+    payload["sources"] = [
+        {**source, "status_label": _status_label(source.get("status"))}
+        for source in payload.get("sources", [])
+    ]
+    return payload
 
 
 class TechnicalDeepSeekBody(BaseModel):
@@ -278,7 +309,7 @@ class TechnicalDeepSeekBody(BaseModel):
 
 def _v2_context(page_id: str) -> dict:
     page = V2_PAGES[page_id]
-    state = V2_PAGE_STATE.get(page_id, {})
+    state = _with_status_labels(V2_PAGE_STATE.get(page_id, {}))
     return {"page_id": page_id, "state": state, **page}
 
 
@@ -290,7 +321,7 @@ def _v2_state_payload(page_id: str) -> dict:
         "title": V2_PAGES[page_id]["title"],
         "mode": V2_PAGES[page_id]["mode_label"],
         "guardrail": V2_PAGES[page_id]["guardrail"],
-        **V2_PAGE_STATE.get(page_id, {}),
+        **_with_status_labels(V2_PAGE_STATE.get(page_id, {})),
     }
 
 
@@ -315,13 +346,13 @@ def _deepseek_status() -> dict:
     configured = bool(os.environ.get("DEEPSEEK_API_KEY", "").strip())
     return {
         "name": "DeepSeek",
-        "status": "configured" if configured else "unconfigured",
-        "detail": os.environ.get("DEEPSEEK_MODEL", "deepseek-v4-flash") if configured else "set DEEPSEEK_API_KEY to enable",
+        "status": "configured" if configured else "未配置",
+        "detail": os.environ.get("DEEPSEEK_MODEL", "deepseek-v4-flash") if configured else "设置 DEEPSEEK_API_KEY 后启用",
     }
 
 
 def _technical_prompt(body: TechnicalDeepSeekBody) -> str:
-    return f"""请生成中文技术面分析报告，报告只作为研究参考，不构成投资建议。
+    return f"""请生成中文技术面分析报告的结构化 JSON，报告只作为研究参考，不构成投资建议。
 
 标的：{body.symbol}
 周期：{body.timeframe}
@@ -329,26 +360,61 @@ def _technical_prompt(body: TechnicalDeepSeekBody) -> str:
 用户补充/已知指标：{body.metrics}
 备注：{body.notes}
 
-请严格按这些模块输出：
-一、基础行情数据
-二、技术指标详细分析
-1. 均线系统：10EMA、20MA、50SMA、200SMA、均线排列、价格偏离、金叉/死叉
-2. MACD：DIF、DEA、柱状图、金叉/死叉、动能扩大/收窄、背离
-3. RSI：RSI(14)、50中轴、超买/超卖、强弱区间
-4. 布林带：上轨、中轨、下轨、价格相对位置、趋势或超跌/超涨
-5. VWMA：成交量加权均线、成交密集区、量价验证
-三、关键支撑位与阻力位
-四、市场规则/标的市场特性
-五、SPY / QQQ 大盘背景
-六、综合技术研判结论
-七、操作观察条件
-八、技术信号汇总表
-九、风险指数
+只返回 JSON，不要返回 Markdown、代码围栏或解释文字。JSON 必须兼容这个结构：
+{{
+  "status": "ok",
+  "symbol": "{body.symbol}",
+  "market_profile": "{body.market_profile}",
+  "snapshot": {{"source": "DeepSeek structured layer", "as_of": "YYYY-MM-DD"}},
+  "risk": {{"score": 0-100, "label": "低/中/偏高/高/极高"}},
+  "sections": {{
+    "basic": [{{"item": "最新收盘价", "value": "199.18 (2026-07-24)", "meaning": "技术分析基准价"}}],
+    "indicator_details": [
+      {{
+        "title": "均线系统（空头排列，死叉格局）",
+        "table": [{{"indicator": "10日EMA", "value": "226.00", "signal": "短期空头"}}],
+        "points": ["价格远低于 10EMA 和 50SMA，属于严重偏离均线的超跌状态。"]
+      }}
+    ],
+    "support": [{{"level": "第一支撑", "price": "196.98", "basis": "日内低点"}}],
+    "resistance": [{{"level": "第一阻力", "price": "226.00", "basis": "10日EMA"}}],
+    "market_rules": [{{"rule": "A股 T+1", "impact": "盘中抄底当日无法卖出，需要承受隔夜风险"}}],
+    "backdrop": [{{"symbol": "SPY", "trend": "走强/转弱/待确认", "status": "大盘过滤结论"}}],
+    "summary": {{
+      "core": "核心判断",
+      "bearish": ["看空证据"],
+      "bullish": ["潜在积极信号"],
+      "watch": ["观察条件"]
+    }},
+    "signals": [{{"indicator": "MACD", "value": "-6.44", "signal": "空", "meaning": "死叉运行，空头动能强化"}}]
+  }}
+}}
 
 要求：
 - 不要编造没有提供的精确价格或指标值；没有数据时写“待接入/暂无数据”。
 - 可以给出判断框架、观察条件和风险等级，但不要给个性化买卖指令。
-- 风格参考专业 agent 报告：结构化、表格化、直接指出多空证据和风险。"""
+- 风格参考专业 agent 报告：结构化、表格化、直接指出多空证据和风险。
+- 如果 body.metrics.generated_report 已经有 sections，请在它的基础上补全 indicator_details 和文字解释，不要改变真实数值。"""
+
+
+def _parse_llm_json(content: str) -> dict | None:
+    text = (content or "").strip()
+    if not text:
+        return None
+    if text.startswith("```"):
+        text = re.sub(r"^```(?:json)?\s*", "", text, flags=re.IGNORECASE)
+        text = re.sub(r"\s*```$", "", text)
+    try:
+        parsed = json.loads(text)
+    except json.JSONDecodeError:
+        match = re.search(r"\{.*\}", text, flags=re.DOTALL)
+        if not match:
+            return None
+        try:
+            parsed = json.loads(match.group(0))
+        except json.JSONDecodeError:
+            return None
+    return parsed if isinstance(parsed, dict) else None
 
 
 def _tv_to_data_symbol(symbol: str) -> str:
@@ -676,7 +742,7 @@ def _build_technical_report(symbol: str, market_profile: str) -> dict:
                 "market_rules": [
                     {"rule": "A股", "impact": "涨跌停、T+1、换手率、连续跌停风险"},
                     {"rule": "美股", "impact": "无涨跌停、盘前盘后、财报跳空、期权波动"},
-                    {"rule": "Crypto", "impact": "24/7 交易、杠杆清算、周末流动性"},
+                    {"rule": "加密货币 / Crypto", "impact": "24/7 交易、杠杆清算、周末流动性"},
                 ],
                 "backdrop": backdrop,
                 "summary": {
@@ -767,7 +833,7 @@ def _build_technical_report(symbol: str, market_profile: str) -> dict:
             "market_rules": [
                 {"rule": "A股", "impact": "涨跌停、T+1、换手率、连续跌停风险"},
                 {"rule": "美股", "impact": "无涨跌停、盘前盘后、财报跳空、期权波动"},
-                {"rule": "Crypto", "impact": "24/7 交易、杠杆清算、周末流动性"},
+                {"rule": "加密货币 / Crypto", "impact": "24/7 交易、杠杆清算、周末流动性"},
             ],
             "backdrop": backdrop,
             "summary": {
@@ -796,8 +862,9 @@ async def api_v2_technical_status():
     return JSONResponse(content={
         "status": "ok",
         "providers": [
-            {"name": "TradingView widget", "status": "external", "detail": "loaded by browser only on /technical-analysis"},
-            {"name": "TradingView MCP", "status": "manual", "detail": "available to Codex, not a dashboard background job"},
+            {"name": "TradingView 图表组件", "status": "外部加载", "detail": "只在 /technical-analysis 页面由浏览器加载"},
+            {"name": "TradingView MCP", "status": "手动", "detail": "Codex 可手动使用，但不是仪表盘后台任务"},
+            _env_status("FINNHUB_API_KEY", "Finnhub quote/candle"),
             _deepseek_status(),
         ],
         "models": {
@@ -805,9 +872,9 @@ async def api_v2_technical_status():
             "base_url": os.environ.get("DEEPSEEK_BASE_URL", "https://api.deepseek.com"),
         },
         "guardrails": [
-            "No DeepSeek request unless the user clicks Run",
-            "No automatic TradingView MCP read from the dashboard",
-            "No hidden background polling",
+            "只有用户点击运行时才请求 DeepSeek",
+            "仪表盘不会自动读取 TradingView MCP",
+            "没有隐藏后台轮询",
         ],
     })
 
@@ -825,9 +892,9 @@ async def api_v2_technical_deepseek_report(body: TechnicalDeepSeekBody):
     base_url = os.environ.get("DEEPSEEK_BASE_URL", "https://api.deepseek.com").rstrip("/")
     if not api_key:
         return JSONResponse(content={
-            "status": "unconfigured",
+            "status": "未配置",
             "model": model,
-            "message": "DEEPSEEK_API_KEY is not configured. The page is ready, but no AI request was sent.",
+            "message": "DEEPSEEK_API_KEY 未配置。页面已就绪，但没有发送 AI 请求。",
         })
     try:
         import httpx
@@ -847,12 +914,23 @@ async def api_v2_technical_deepseek_report(body: TechnicalDeepSeekBody):
         resp.raise_for_status()
         data = resp.json()
         content = data.get("choices", [{}])[0].get("message", {}).get("content", "")
-        return JSONResponse(content={"status": "ok", "model": model, "report": content, "usage": data.get("usage", {})})
+        report_json = _parse_llm_json(content)
+        if report_json:
+            report_json.setdefault("status", "ok")
+            report_json.setdefault("symbol", body.symbol)
+            report_json.setdefault("market_profile", body.market_profile)
+        return JSONResponse(content={
+            "status": "ok",
+            "model": model,
+            "report": content,
+            "report_json": report_json,
+            "usage": data.get("usage", {}),
+        })
     except Exception as exc:
         return JSONResponse(status_code=502, content={
-            "status": "failed",
+            "status": "失败",
             "model": model,
-            "message": f"DeepSeek request failed: {exc}",
+            "message": f"DeepSeek 请求失败：{exc}",
         })
 
 
@@ -861,7 +939,7 @@ def _module_status(module_name: str, label: str, install_hint: str = "") -> dict
     return {
         "name": label,
         "status": "available" if available else "missing",
-        "detail": "installed" if available else (install_hint or f"{module_name} is not installed"),
+        "detail": "已安装" if available else (install_hint or f"{module_name} 未安装"),
     }
 
 
@@ -869,8 +947,8 @@ def _env_status(env_name: str, label: str) -> dict:
     configured = bool(os.environ.get(env_name))
     return {
         "name": label,
-        "status": "configured" if configured else "unconfigured",
-        "detail": env_name if configured else f"set {env_name} to enable",
+        "status": "configured" if configured else "未配置",
+        "detail": env_name if configured else f"设置 {env_name} 后启用",
     }
 
 
@@ -886,18 +964,18 @@ async def api_v2_runtime_status(request: Request):
     modules = [
         _module_status("fastapi", "FastAPI"),
         _module_status("uvicorn", "Uvicorn"),
-        _module_status("websockets", "WebSocket transport", "install uvicorn[standard] or websockets"),
-        _module_status("yfinance", "Market data / yfinance", "install augur-agents[data]"),
+        _module_status("websockets", "WebSocket 传输", "安装 uvicorn[standard] 或 websockets"),
+        _module_status("yfinance", "行情数据 / yfinance", "安装 augur-agents[data]"),
     ]
     providers = [
-        {"name": "Dashboard", "status": "running", "detail": f"{request.url.scheme}://{request.url.hostname}:{port}"},
-        {"name": "TradingAgents General+", "status": "manual", "detail": "not started from dashboard"},
-        {"name": "Google News", "status": "disabled", "detail": "provider shell only"},
-        {"name": "Reddit", "status": "disabled", "detail": "provider shell only"},
-        {"name": "X / Twitter", "status": "disabled", "detail": "provider shell only"},
-        {"name": "Deep Sync", "status": "disabled", "detail": "provider shell only"},
-        {"name": "TradingView", "status": "disabled", "detail": "Trading Lab shell only"},
-        {"name": "Technical Analysis", "status": "manual", "detail": "TradingView widget + DeepSeek on click"},
+        {"name": "仪表盘", "status": "运行中", "detail": f"{request.url.scheme}://{request.url.hostname}:{port}"},
+        {"name": "TradingAgents General+", "status": "手动", "detail": "未从仪表盘启动"},
+        {"name": "Google News", "status": "已禁用", "detail": "仅数据源框架"},
+        {"name": "Reddit", "status": "已禁用", "detail": "仅数据源框架"},
+        {"name": "X / Twitter", "status": "已禁用", "detail": "仅数据源框架"},
+        {"name": "Deep Sync", "status": "已禁用", "detail": "仅数据源框架"},
+        {"name": "TradingView", "status": "已禁用", "detail": "仅交易实验室框架"},
+        {"name": "技术面分析", "status": "手动", "detail": "TradingView 图表组件 + 点击后 DeepSeek"},
     ]
     env = [
         _env_status("X_API_BEARER_TOKEN", "X API"),
@@ -919,10 +997,10 @@ async def api_v2_runtime_status(request: Request):
         "providers": providers,
         "environment": env,
         "guardrails": [
-            "No automatic X/Reddit/News crawling",
-            "No TradingAgents run without manual trigger",
-            "No live candle stream from the dashboard shell",
-            "External providers remain disabled until configured",
+            "不自动抓取 X / Reddit / 新闻",
+            "没有手动触发就不运行 TradingAgents",
+            "仪表盘框架不启动实时 K 线流",
+            "外部数据源配置前保持禁用",
         ],
     })
 
