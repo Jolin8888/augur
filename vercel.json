@@ -1,0 +1,15 @@
+{
+  "version": 2,
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "api/index.py"
+    }
+  ],
+  "functions": {
+    "api/index.py": {
+      "excludeFiles": "{tests/**,.github/**,docs/*.log,docs/loop-*.log,**/__pycache__/**,**/*.pyc}",
+      "maxDuration": 60
+    }
+  }
+}

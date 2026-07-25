@@ -20,3 +20,4 @@ build/
 
 # Nested git clone ignore
 /augur/
+.vercel
