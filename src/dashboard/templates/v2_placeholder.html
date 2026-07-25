@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} - Augur{% endblock %}
+{% block extra_head %}
+<style>
+.v2-shell {
+    display: grid;
+    gap: 16px;
+}
+.v2-hero {
+    display: grid;
+    gap: 10px;
+    padding: 18px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    background: var(--bg-card);
+}
+.v2-status-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+.v2-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    padding: 4px 8px;
+    color: var(--text-muted);
+    font-size: 0.72rem;
+}
+.v2-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--signal-neutral);
+}
+.v2-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+}
+.v2-card {
+    min-height: 120px;
+    padding: 16px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    background: var(--bg-card);
+}
+.v2-card h3 {
+    margin: 0 0 8px;
+    color: var(--text-primary);
+    font-size: 0.95rem;
+}
+.v2-card p,
+.v2-card li {
+    color: var(--text-muted);
+    font-size: 0.78rem;
+    line-height: 1.6;
+}
+.v2-card ul {
+    margin: 8px 0 0;
+    padding-left: 18px;
+}
+.v2-wide {
+    grid-column: span 2;
+}
+.v2-muted-panel {
+    border: 1px dashed var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 14px;
+    color: var(--text-muted);
+    background: rgba(255,255,255,0.02);
+    font-size: 0.78rem;
+}
+@media (max-width: 980px) {
+    .v2-grid { grid-template-columns: 1fr; }
+    .v2-wide { grid-column: auto; }
+}
+</style>
+{% endblock %}
+{% block content %}
+<div class="v2-shell" data-page="{{ page_id }}">
+    <header class="page-header">
+        <div class="page-header__text">
+            <h1 class="page-title">{{ heading }}</h1>
+            <p class="page-lead">{{ description }}</p>
+        </div>
+        <div class="page-actions">
+            <span class="v2-pill"><span class="v2-dot" aria-hidden="true"></span>{{ mode_label }}</span>
+        </div>
+    </header>
+
+    <section class="v2-hero" aria-label="Version 2.0 guardrails">
+        <div class="v2-status-row">
+            <span class="v2-pill">No background jobs</span>
+            <span class="v2-pill">No external API calls</span>
+            <span class="v2-pill">Cache-first design</span>
+            <span class="v2-pill">Manual trigger only</span>
+        </div>
+        <p class="text-muted" style="margin:0;font-size:0.8rem;line-height:1.7;">{{ guardrail }}</p>
+    </section>
+
+    <section class="v2-grid" aria-label="Planned modules">
+        {% for card in cards %}
+        <article class="v2-card{% if card.wide %} v2-wide{% endif %}">
+            <h3>{{ card.title }}</h3>
+            <p>{{ card.body }}</p>
+            {% if card.bullets %}
+            <ul>
+                {% for item in card.bullets %}
+                <li>{{ item }}</li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+        </article>
+        {% endfor %}
+    </section>
+
+    <section class="v2-muted-panel">
+        Current page is a lightweight shell. Real providers will be connected only after you confirm API keys, refresh limits, and fallback behavior.
+    </section>
+</div>
+{% endblock %}

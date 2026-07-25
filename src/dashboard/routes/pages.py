@@ -75,6 +75,134 @@ async def scanner_page(request: Request):
     })
 
 
+V2_PAGES = {
+    "radar": {
+        "title": "Market Radar",
+        "heading": "Market Radar",
+        "description": "SpikePanel-style market intelligence board for watchlists, factor signals, news heat, Reddit heat, X attention, and options flow.",
+        "mode_label": "Framework shell",
+        "guardrail": "This page is only the version 2.0 entry point. It does not fetch X, Reddit, Google News, TradingAgents, or real-time market data yet.",
+        "cards": [
+            {"title": "Signal Table", "body": "A dense radar table for tickers, scores, market move, source counts, and freshness.", "bullets": ["price and trend", "news count", "sentiment badge", "source receipts"], "wide": True},
+            {"title": "Provider Status", "body": "Each data source will report idle, running, failed, or rate-limited.", "bullets": ["market", "news", "reddit", "x/twitter"]},
+            {"title": "Manual Refresh", "body": "Refresh will stay user-controlled, with limits for tickers and source items.", "bullets": ["max tickers", "max headlines", "cooldown"]},
+        ],
+    },
+    "sentiment": {
+        "title": "Sentiment",
+        "heading": "Market Sentiment",
+        "description": "A controlled view of X, Reddit, and news tone without starting any crawler by default.",
+        "mode_label": "Providers disabled",
+        "guardrail": "Social and news providers will be opt-in. The page will show what is configured before any external request is made.",
+        "cards": [
+            {"title": "X / Twitter", "body": "Track selected KOLs, cashtags, and credible source posts when API access is configured.", "bullets": ["cashtag search", "KOL watchlist", "source links"]},
+            {"title": "Reddit", "body": "Summarize subreddit activity, mentions, and top posts with rate-limit visibility.", "bullets": ["mentions", "top posts", "rate-limit status"]},
+            {"title": "Sentiment Score", "body": "Keep sentiment separate from valuation and market factors so the dashboard does not become a black box.", "bullets": ["bull", "bear", "mixed", "no data"]},
+        ],
+    },
+    "news-flow": {
+        "title": "News Flow",
+        "heading": "News Flow",
+        "description": "Google News headlines and company/event news streams with source receipts.",
+        "mode_label": "RSS not connected",
+        "guardrail": "News refresh will be cached and limited. No background polling is active in this shell.",
+        "cards": [
+            {"title": "Google News", "body": "Ticker-focused headline feeds with source, timestamp, and linked receipt.", "bullets": ["ticker query", "sector query", "macro query"]},
+            {"title": "Event Clusters", "body": "Group repeated headlines into one event so the page stays readable.", "bullets": ["earnings", "guidance", "regulatory", "product"]},
+            {"title": "AI Summary", "body": "Summaries will cite source headlines and remain optional.", "bullets": ["facts first", "no advice", "traceable"]},
+        ],
+    },
+    "research-memo": {
+        "title": "Research Memo",
+        "heading": "Research Memo",
+        "description": "TradingAgents General+ dimensions compressed into a readable PM memo surface.",
+        "mode_label": "Manual analysis only",
+        "guardrail": "TradingAgents will not run automatically. It will require a manual button, ticker selection, and visible runtime status.",
+        "cards": [
+            {"title": "7 Analyst Dimensions", "body": "Market, Sentiment, News, Fundamentals, Macro, Flow, and Catalyst become memo sections.", "bullets": ["quality gate", "bull vs bear", "PM memo"], "wide": True},
+            {"title": "Data Gaps", "body": "Missing Reddit, macro, or research data will lower confidence instead of pretending certainty.", "bullets": ["NO_DATA", "rate limited", "unconfigured"]},
+            {"title": "Output", "body": "Final memo stays compact: bias, confidence, thesis, prove points, kill points, and monitoring items."},
+        ],
+    },
+    "macro": {
+        "title": "Macro",
+        "heading": "Macro Monitor",
+        "description": "Rates, inflation, commodities, dollar, central banks, and sector regime context.",
+        "mode_label": "Snapshot shell",
+        "guardrail": "Macro providers will refresh slowly by design and should never block the dashboard.",
+        "cards": [
+            {"title": "Regime Board", "body": "A compact board for rates, dollar, oil, yields, inflation, and risk appetite.", "bullets": ["daily cache", "event flags", "sector impact"]},
+            {"title": "Ticker Impact", "body": "Map macro pressure to tickers and sectors without turning it into an opaque score.", "bullets": ["tailwind", "headwind", "neutral"]},
+            {"title": "Provider Health", "body": "FRED or other macro failures will show clearly in Runtime Status."},
+        ],
+    },
+    "trading-lab": {
+        "title": "Trading Lab",
+        "heading": "Trading Lab",
+        "description": "TradingView, candle testing, Brooks-style price action labels, and drawing experiments.",
+        "mode_label": "No live feed",
+        "guardrail": "This page will load only when opened. It will not start a real-time market stream from the main dashboard.",
+        "cards": [
+            {"title": "TradingView", "body": "Embed when possible; otherwise open TradingView with the current ticker and timeframe.", "bullets": ["embed fallback", "open external", "no forced login"]},
+            {"title": "Candle Layer", "body": "Prepare OHLCV and drawing interfaces before choosing a real-time data source.", "bullets": ["timeframe", "support/resistance", "trend lines"], "wide": True},
+            {"title": "Brooks Action", "body": "Future labels for trend, range, breakout, pullback, wedge, and signal bars."},
+        ],
+    },
+    "runtime": {
+        "title": "Runtime Status",
+        "heading": "Runtime Status",
+        "description": "A visible control room for ports, providers, cache freshness, and task state.",
+        "mode_label": "Local service visible",
+        "guardrail": "This is where heavy work will become observable before it is allowed to run.",
+        "cards": [
+            {"title": "Local Server", "body": "Show the current dashboard port, process, uptime, and recent errors.", "bullets": ["port 8000", "uvicorn", "last health check"]},
+            {"title": "Providers", "body": "Every external provider gets a visible state and error reason.", "bullets": ["disabled", "idle", "running", "failed", "rate limited"], "wide": True},
+            {"title": "Controls", "body": "Future controls will stop tasks, clear caches, and set refresh limits."},
+        ],
+    },
+}
+
+
+def _v2_context(page_id: str) -> dict:
+    page = V2_PAGES[page_id]
+    return {"page_id": page_id, **page}
+
+
+@router.get("/radar", response_class=HTMLResponse, summary="Version 2.0 market radar shell")
+async def radar_page(request: Request):
+    return templates.TemplateResponse(request=request, name="v2_placeholder.html", context=_v2_context("radar"))
+
+
+@router.get("/sentiment", response_class=HTMLResponse, summary="Version 2.0 sentiment shell")
+async def sentiment_page(request: Request):
+    return templates.TemplateResponse(request=request, name="v2_placeholder.html", context=_v2_context("sentiment"))
+
+
+@router.get("/news-flow", response_class=HTMLResponse, summary="Version 2.0 news flow shell")
+async def news_flow_page(request: Request):
+    return templates.TemplateResponse(request=request, name="v2_placeholder.html", context=_v2_context("news-flow"))
+
+
+@router.get("/research-memo", response_class=HTMLResponse, summary="Version 2.0 research memo shell")
+async def research_memo_page(request: Request):
+    return templates.TemplateResponse(request=request, name="v2_placeholder.html", context=_v2_context("research-memo"))
+
+
+@router.get("/macro", response_class=HTMLResponse, summary="Version 2.0 macro shell")
+async def macro_page(request: Request):
+    return templates.TemplateResponse(request=request, name="v2_placeholder.html", context=_v2_context("macro"))
+
+
+@router.get("/trading-lab", response_class=HTMLResponse, summary="Version 2.0 trading lab shell")
+async def trading_lab_page(request: Request):
+    return templates.TemplateResponse(request=request, name="v2_placeholder.html", context=_v2_context("trading-lab"))
+
+
+@router.get("/runtime", response_class=HTMLResponse, summary="Version 2.0 runtime status shell")
+async def runtime_page(request: Request):
+    return templates.TemplateResponse(request=request, name="v2_placeholder.html", context=_v2_context("runtime"))
+
+
 @router.get("/watchlist", response_class=HTMLResponse, summary="自选股页面")
 async def watchlist_page(request: Request):
     return templates.TemplateResponse(request=request, name="watchlist.html", context={
