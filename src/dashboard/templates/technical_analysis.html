@@ -239,6 +239,16 @@
         </div>
     </section>
 
+    <section class="tech-card" aria-label="Generated technical report">
+        <div class="tech-card-head" style="padding:0 0 12px;border-bottom:0;">
+            <h3>自动技术面报告</h3>
+            <span class="tech-pill" id="report-status">等待标的输入</span>
+        </div>
+        <div id="generated-report" class="tech-report">
+            <p class="tech-note">输入标的后会自动生成完整报告。数据优先来自已配置的轻量行情源；没有数据时会明确显示降级原因。</p>
+        </div>
+    </section>
+
     <div class="tech-grid">
         <main class="tech-report" aria-label="Technical analysis report framework">
             <section class="tech-card">
@@ -393,6 +403,90 @@ function tvSymbolUrl(symbol) {
     return 'https://www.tradingview.com/chart/?symbol=' + encodeURIComponent(symbol);
 }
 
+function techEscape(value) {
+    return String(value == null ? '' : value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+function tableHtml(headers, rows) {
+    return '<table class="tech-table"><thead><tr>' +
+        headers.map(function(h) { return '<th>' + techEscape(h) + '</th>'; }).join('') +
+        '</tr></thead><tbody>' + rows.join('') + '</tbody></table>';
+}
+
+function listHtml(items) {
+    return '<ul>' + (items || []).map(function(item) { return '<li>' + techEscape(item) + '</li>'; }).join('') + '</ul>';
+}
+
+function renderGeneratedReport(data) {
+    window.currentTechnicalReport = data;
+    var host = document.getElementById('generated-report');
+    var status = document.getElementById('report-status');
+    if (!host) return;
+    if (!data || data.status !== 'ok') {
+        status.textContent = 'degraded';
+        host.innerHTML = '<p class="tech-note">报告暂时无法完整生成：' + techEscape(data && data.message ? data.message : '暂无数据') + '</p>';
+        return;
+    }
+    status.textContent = data.snapshot.source + ' · ' + data.snapshot.as_of + ' · risk ' + data.risk.label;
+    var s = data.sections || {};
+    var html = '';
+    html += '<section class="tech-card"><h3>一、基础行情数据</h3>' +
+        tableHtml(['项目', '数值', '研判逻辑'], (s.basic || []).map(function(row) {
+            return '<tr><td>' + techEscape(row.item) + '</td><td>' + techEscape(row.value) + '</td><td>' + techEscape(row.meaning) + '</td></tr>';
+        })) + '</section>';
+    html += '<section class="tech-card"><h3>二、技术指标详细分析</h3>' +
+        tableHtml(['模块', '信号', '技术含义'], (s.indicators || []).map(function(row) {
+            return '<tr><td>' + techEscape(row.label) + '</td><td>' + techEscape(row.signal) + '</td><td>' + techEscape(row.meaning) + '</td></tr>';
+        })) + '</section>';
+    html += '<section class="tech-card"><h3>三、关键支撑位与阻力位</h3><div class="tech-grid">' +
+        '<div>' + tableHtml(['支撑级别', '价位', '依据'], (s.support || []).map(function(row) {
+            return '<tr><td>' + techEscape(row.level) + '</td><td>' + techEscape(row.price) + '</td><td>' + techEscape(row.basis) + '</td></tr>';
+        })) + '</div>' +
+        '<div>' + tableHtml(['阻力级别', '价位', '依据'], (s.resistance || []).map(function(row) {
+            return '<tr><td>' + techEscape(row.level) + '</td><td>' + techEscape(row.price) + '</td><td>' + techEscape(row.basis) + '</td></tr>';
+        })) + '</div></div></section>';
+    html += '<section class="tech-card"><h3>四、市场规则 / 标的市场特性</h3>' +
+        tableHtml(['规则', '影响分析'], (s.market_rules || []).map(function(row) {
+            return '<tr><td>' + techEscape(row.rule) + '</td><td>' + techEscape(row.impact) + '</td></tr>';
+        })) + '</section>';
+    html += '<section class="tech-card"><h3>五、SPY / QQQ 大盘背景</h3>' +
+        tableHtml(['对象', '趋势', '状态'], (s.backdrop || []).map(function(row) {
+            return '<tr><td>' + techEscape(row.symbol) + '</td><td>' + techEscape(row.trend) + '</td><td>' + techEscape(row.status) + '</td></tr>';
+        })) + '</section>';
+    html += '<section class="tech-card"><h3>六、综合技术研判结论</h3>' +
+        '<p class="tech-note"><strong>' + techEscape(s.summary.core) + '</strong></p>' +
+        '<h3 style="margin-top:12px;">看空/风险信号</h3>' + listHtml(s.summary.bearish) +
+        '<h3 style="margin-top:12px;">潜在积极信号</h3>' + listHtml(s.summary.bullish) +
+        '</section>';
+    html += '<section class="tech-card"><h3>七、操作观察条件</h3>' + listHtml(s.summary.watch) + '</section>';
+    html += '<section class="tech-card"><h3>八、技术信号汇总表</h3>' +
+        tableHtml(['指标', '当前数值', '多空信号', '技术含义'], (s.signals || []).map(function(row) {
+            return '<tr><td>' + techEscape(row.indicator) + '</td><td>' + techEscape(row.value) + '</td><td>' + techEscape(row.signal) + '</td><td>' + techEscape(row.meaning) + '</td></tr>';
+        })) + '</section>';
+    html += '<section class="tech-card"><h3>九、风险指数</h3><p class="tech-note">风险等级：<strong>' +
+        techEscape(data.risk.label) + '</strong> · ' + techEscape(data.risk.score) + '/100</p>' +
+        '<div class="tech-risk-meter"><div class="tech-risk-marker" style="transform:translateX(' + techEscape(data.risk.score) + '%);"></div></div></section>';
+    host.innerHTML = html;
+}
+
+function loadTechnicalReport() {
+    var symbol = normalizeTvSymbol(document.getElementById('tech-symbol').value);
+    var market = document.getElementById('tech-market').value || 'US';
+    document.getElementById('report-status').textContent = 'loading';
+    fetch('/api/v2/technical/report?symbol=' + encodeURIComponent(symbol) + '&market_profile=' + encodeURIComponent(market), { cache: 'no-store' })
+        .then(function(res) { return res.json(); })
+        .then(renderGeneratedReport)
+        .catch(function(err) {
+            document.getElementById('report-status').textContent = 'failed';
+            document.getElementById('generated-report').innerHTML = '<p class="tech-note">报告生成失败：' + techEscape(err) + '</p>';
+        });
+}
+
 function loadTradingViewChart() {
     var symbol = normalizeTvSymbol(document.getElementById('tech-symbol').value);
     var interval = document.getElementById('tech-timeframe').value || 'D';
@@ -447,6 +541,7 @@ function loadTradingViewChart() {
     });
     container.appendChild(script);
     host.appendChild(container);
+    loadTechnicalReport();
 }
 
 function loadTechnicalStatus() {
@@ -473,7 +568,8 @@ function runDeepSeekReport() {
             timeframe: document.getElementById('tech-timeframe').value || 'D',
             market_profile: document.getElementById('tech-market').value || 'US',
             metrics: {
-                data_source: 'TradingView widget visible chart; numeric values pending MCP/datafeed connection',
+                data_source: 'TradingView widget + /api/v2/technical/report',
+                generated_report: window.currentTechnicalReport || null,
                 required_modules: ['基础行情', '均线系统', 'MACD', 'RSI', 'BOLL', 'VWMA', '支撑阻力', 'SPY/QQQ', '风险指数']
             },
             notes: document.getElementById('tech-notes').value || ''
@@ -494,5 +590,10 @@ function runDeepSeekReport() {
 
 loadTradingViewChart();
 loadTechnicalStatus();
+document.getElementById('tech-symbol').addEventListener('keydown', function(event) {
+    if (event.key === 'Enter') {
+        loadTradingViewChart();
+    }
+});
 </script>
 {% endblock %}
