@@ -10,6 +10,9 @@ build/
 .agents/
 .venv/
 .venv.old-libressl-backup/
+.env
+.env.local
+.env.*.local
 
 # Test caches
 .pytest-home/
