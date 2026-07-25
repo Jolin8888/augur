@@ -1,0 +1,498 @@
+{% extends "base.html" %}
+{% block title %}技术面分析 - Augur{% endblock %}
+{% block extra_head %}
+<style>
+.tech-shell {
+    display: grid;
+    gap: 14px;
+}
+.tech-toolbar {
+    display: grid;
+    grid-template-columns: minmax(180px, 1fr) 130px 140px auto auto;
+    gap: 8px;
+    align-items: end;
+}
+.tech-field {
+    display: grid;
+    gap: 5px;
+}
+.tech-field label {
+    color: var(--text-muted);
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+.tech-field input,
+.tech-field select,
+.tech-field textarea {
+    min-height: 34px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    background: var(--bg-card);
+    color: var(--text-primary);
+    padding: 7px 9px;
+    font: inherit;
+    font-size: 0.82rem;
+}
+.tech-chart-card,
+.tech-card {
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    background: var(--bg-card);
+}
+.tech-chart-head,
+.tech-card-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border-color);
+}
+.tech-chart-head h2,
+.tech-card h3 {
+    margin: 0;
+    color: var(--text-primary);
+    font-size: 0.98rem;
+}
+.tech-chart-wrap {
+    height: min(62vh, 620px);
+    min-height: 420px;
+    padding: 0;
+}
+#tv-technical-widget {
+    height: 100%;
+    width: 100%;
+}
+.tech-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.25fr) minmax(300px, 0.75fr);
+    gap: 12px;
+}
+.tech-report {
+    display: grid;
+    gap: 12px;
+}
+.tech-card {
+    padding: 14px;
+}
+.tech-card p,
+.tech-card li,
+.tech-note {
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    line-height: 1.65;
+}
+.tech-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.78rem;
+}
+.tech-table th,
+.tech-table td {
+    border-bottom: 1px solid var(--border-color);
+    padding: 8px 9px;
+    text-align: left;
+    vertical-align: top;
+}
+.tech-table th {
+    color: var(--text-muted);
+    font-size: 0.67rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+.tech-pill-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+}
+.tech-pill {
+    display: inline-flex;
+    align-items: center;
+    min-height: 26px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    padding: 0 8px;
+    color: var(--text-muted);
+    font-size: 0.72rem;
+}
+.tech-risk-meter {
+    height: 10px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, var(--signal-buy), var(--accent-orange), var(--signal-sell));
+    overflow: hidden;
+}
+.tech-risk-marker {
+    width: 12px;
+    height: 16px;
+    margin-top: -3px;
+    border: 2px solid var(--text-primary);
+    border-radius: 999px;
+    background: var(--bg-card);
+    transform: translateX(62%);
+}
+.tech-ai-box {
+    min-height: 160px;
+    white-space: pre-wrap;
+}
+.tech-fab {
+    position: fixed;
+    right: 22px;
+    bottom: 22px;
+    display: grid;
+    gap: 8px;
+    z-index: 30;
+}
+.tech-fab button,
+.tech-fab a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 36px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    background: var(--bg-card);
+    color: var(--text-primary);
+    padding: 0 12px;
+    font-size: 0.78rem;
+    text-decoration: none;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.24);
+}
+.tech-fab .primary {
+    background: var(--accent-orange);
+    border-color: var(--accent-orange);
+    color: #111;
+    font-weight: 700;
+}
+@media (max-width: 1080px) {
+    .tech-toolbar,
+    .tech-grid {
+        grid-template-columns: 1fr;
+    }
+    .tech-chart-wrap {
+        height: 480px;
+    }
+    .tech-fab {
+        position: static;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="tech-shell" data-page="technical-analysis">
+    <header class="page-header">
+        <div class="page-header__text">
+            <h1 class="page-title">技术面分析</h1>
+            <p class="page-lead">TradingView 图表在上，agent 式技术面研判在下。DeepSeek 只在手动点击时运行。</p>
+        </div>
+        <div class="page-actions">
+            <span class="tech-pill" id="deepseek-status">DeepSeek: checking</span>
+            <span class="tech-pill">No background polling</span>
+        </div>
+    </header>
+
+    <section class="tech-card" aria-label="Technical analysis controls">
+        <div class="tech-toolbar">
+            <div class="tech-field">
+                <label for="tech-symbol">TradingView symbol</label>
+                <input id="tech-symbol" value="NASDAQ:NVDA" autocomplete="off" spellcheck="false">
+            </div>
+            <div class="tech-field">
+                <label for="tech-timeframe">Timeframe</label>
+                <select id="tech-timeframe">
+                    <option value="15">15m</option>
+                    <option value="60">1H</option>
+                    <option value="240">4H</option>
+                    <option value="D" selected>1D</option>
+                    <option value="W">1W</option>
+                </select>
+            </div>
+            <div class="tech-field">
+                <label for="tech-market">Market profile</label>
+                <select id="tech-market">
+                    <option value="US" selected>US / 美股</option>
+                    <option value="A股">A股</option>
+                    <option value="Crypto">Crypto</option>
+                    <option value="ETF">ETF</option>
+                </select>
+            </div>
+            <button type="button" class="btn" onclick="loadTradingViewChart()">刷新图表</button>
+            <button type="button" class="btn" onclick="runDeepSeekReport()">运行 DeepSeek</button>
+        </div>
+    </section>
+
+    <section class="tech-chart-card" aria-label="TradingView technical chart">
+        <div class="tech-chart-head">
+            <h2 id="chart-title">NASDAQ:NVDA · TradingView</h2>
+            <div class="tech-pill-row">
+                <span class="tech-pill">BOLL</span>
+                <span class="tech-pill">MACD</span>
+                <span class="tech-pill">RSI</span>
+                <span class="tech-pill">MA / EMA</span>
+                <span class="tech-pill">Volume</span>
+            </div>
+        </div>
+        <div class="tech-chart-wrap">
+            <div id="tv-technical-widget"></div>
+        </div>
+    </section>
+
+    <div class="tech-grid">
+        <main class="tech-report" aria-label="Technical analysis report framework">
+            <section class="tech-card">
+                <h3>一、基础行情数据</h3>
+                <table class="tech-table">
+                    <thead><tr><th>项目</th><th>数值</th><th>研判逻辑</th></tr></thead>
+                    <tbody>
+                        <tr><td>最新收盘价</td><td>待接入 TradingView OHLC</td><td>作为所有均线、支撑阻力和偏离度的基准。</td></tr>
+                        <tr><td>当日涨跌幅</td><td>待接入</td><td>结合成交量判断上涨/下跌是否被确认。</td></tr>
+                        <tr><td>近24日累计涨跌幅</td><td>待接入</td><td>衡量中短期趋势是否进入深度回撤或主升。</td></tr>
+                        <tr><td>近5日 / 20日均量</td><td>待接入</td><td>计算量比，识别放量突破、下跌放量、缩量企稳。</td></tr>
+                        <tr><td>量价背离</td><td>规则已接入</td><td>下跌放量偏空；上涨缩量需降权；缩量止跌进入观察。</td></tr>
+                    </tbody>
+                </table>
+            </section>
+
+            <section class="tech-card">
+                <h3>二、技术指标详细分析</h3>
+                <table class="tech-table">
+                    <thead><tr><th>模块</th><th>指标</th><th>多空判断</th><th>技术含义</th></tr></thead>
+                    <tbody>
+                        <tr><td>均线系统</td><td>10EMA / 20MA / 50SMA / 200SMA</td><td>多头、空头、纠缠</td><td>判断趋势结构、金叉死叉、价格偏离均线幅度。</td></tr>
+                        <tr><td>MACD</td><td>DIF / DEA / Histogram</td><td>金叉、死叉、柱体扩大/收窄</td><td>判断动能方向、加速、衰竭和背离。</td></tr>
+                        <tr><td>RSI</td><td>RSI(14)</td><td>强势、偏弱、超买、超卖</td><td>50 中轴用于强弱分界；30/70 用于极端区观察。</td></tr>
+                        <tr><td>布林带</td><td>Upper / Middle / Lower</td><td>贴上轨、跌破中轨、触下轨</td><td>识别趋势推进、弱势运行、极端偏离和反弹需求。</td></tr>
+                        <tr><td>VWMA</td><td>成交量加权均线</td><td>量价确认/背离</td><td>识别成交密集区、套牢压力和承接强弱。</td></tr>
+                    </tbody>
+                </table>
+            </section>
+
+            <section class="tech-card">
+                <h3>三、关键支撑位与阻力位</h3>
+                <table class="tech-table">
+                    <thead><tr><th>类型</th><th>来源</th><th>解释</th></tr></thead>
+                    <tbody>
+                        <tr><td>支撑</td><td>日内低点、近期低点、前低、整数关口、布林下轨</td><td>跌破后风险上调，跌破后放量说明抛压未结束。</td></tr>
+                        <tr><td>阻力</td><td>10EMA、20MA/BOLL中轨、50SMA、VWMA、前高</td><td>多个阻力重合时形成密集压力区，突破需放量确认。</td></tr>
+                        <tr><td>密集区</td><td>均线 + VWMA + 前高/前低重合</td><td>用于标记短线交易中最容易失败的位置。</td></tr>
+                    </tbody>
+                </table>
+            </section>
+
+            <section class="tech-card">
+                <h3>四、市场规则 / 标的市场特性</h3>
+                <table class="tech-table">
+                    <thead><tr><th>市场</th><th>规则影响</th><th>风险解释</th></tr></thead>
+                    <tbody>
+                        <tr><td>A股</td><td>涨跌停、T+1、换手率、连续跌停风险</td><td>盘中抄底无法当日卖出，跌停附近要额外考虑流动性。</td></tr>
+                        <tr><td>美股</td><td>无涨跌停、盘前盘后、财报跳空、期权波动</td><td>高 beta 个股需要重点看 QQQ 是否确认。</td></tr>
+                        <tr><td>Crypto</td><td>24/7、杠杆清算、周末流动性</td><td>极端波动下均线和 RSI 信号容易失真。</td></tr>
+                    </tbody>
+                </table>
+            </section>
+
+            <section class="tech-card">
+                <h3>五、SPY / QQQ 大盘背景</h3>
+                <table class="tech-table">
+                    <thead><tr><th>对象</th><th>判断</th><th>对主标的影响</th></tr></thead>
+                    <tbody>
+                        <tr><td>SPY</td><td>站上/跌破 MA20、MA50、MA200；多头或空头排列</td><td>衡量市场广度和系统性风险。</td></tr>
+                        <tr><td>QQQ</td><td>科技成长风格是否走强</td><td>高 beta、AI、半导体、成长股信号需看 QQQ 过滤。</td></tr>
+                        <tr><td>共振</td><td>个股 + SPY + QQQ 同向</td><td>强共振降低风险；背离则个股信号降权。</td></tr>
+                    </tbody>
+                </table>
+            </section>
+
+            <section class="tech-card">
+                <h3>六、综合技术研判结论</h3>
+                <p>报告结论会按多空证据拆开：核心判断、看多信号、看空信号、潜在积极信号、潜在风险、最重要观察点。没有真实指标前不会编造数值。</p>
+            </section>
+
+            <section class="tech-card">
+                <h3>七、操作观察条件</h3>
+                <table class="tech-table">
+                    <thead><tr><th>方向</th><th>观察条件</th></tr></thead>
+                    <tbody>
+                        <tr><td>企稳</td><td>缩量止跌、RSI 超卖后拐头、MACD 柱体负值收窄、放量阳线站上短均线、SPY/QQQ 同步企稳。</td></tr>
+                        <tr><td>转弱</td><td>跌破前低/整数关口、放量长阴、MACD 负值继续扩大、大盘同步走弱。</td></tr>
+                        <tr><td>突破</td><td>站上阻力密集区并放量，回踩不破，SPY/QQQ 至少一个同步确认。</td></tr>
+                    </tbody>
+                </table>
+            </section>
+
+            <section class="tech-card">
+                <h3>八、技术信号汇总表</h3>
+                <table class="tech-table">
+                    <thead><tr><th>指标</th><th>当前数值</th><th>多空信号</th><th>技术含义</th></tr></thead>
+                    <tbody>
+                        <tr><td>收盘价 / 累计涨跌幅</td><td>待接入</td><td>待判断</td><td>趋势位置和阶段涨跌。</td></tr>
+                        <tr><td>量比</td><td>待接入</td><td>待判断</td><td>上涨/下跌是否有成交量确认。</td></tr>
+                        <tr><td>10EMA / 50SMA / 200SMA</td><td>待接入</td><td>待判断</td><td>趋势结构和均线压力。</td></tr>
+                        <tr><td>MACD / RSI / BOLL / VWMA</td><td>待接入</td><td>待判断</td><td>动能、强弱、波动区间、量价验证。</td></tr>
+                        <tr><td>SPY / QQQ</td><td>待接入</td><td>待判断</td><td>大盘共振或背离。</td></tr>
+                    </tbody>
+                </table>
+            </section>
+        </main>
+
+        <aside class="tech-report" aria-label="Risk and AI analysis">
+            <section class="tech-card">
+                <h3>九、风险指数</h3>
+                <p class="tech-note">风险由趋势、动能、量价、支撑破位、大盘环境、市场制度、超买/超跌反转风险合成。当前为逻辑层已接入，数值层待 TradingView 指标值接入。</p>
+                <div class="tech-risk-meter" aria-hidden="true"><div class="tech-risk-marker"></div></div>
+                <div class="tech-pill-row" style="margin-top:12px;">
+                    <span class="tech-pill">趋势风险</span>
+                    <span class="tech-pill">动能风险</span>
+                    <span class="tech-pill">量价风险</span>
+                    <span class="tech-pill">大盘风险</span>
+                </div>
+            </section>
+
+            <section class="tech-card">
+                <h3>DeepSeek 研判层</h3>
+                <p class="tech-note">手动点击后调用 DeepSeek，默认模型为 deepseek-v4-flash。无 API key 时不会发送请求。</p>
+                <div class="tech-field">
+                    <label for="tech-notes">补充指标或观察</label>
+                    <textarea id="tech-notes" rows="5" placeholder="可以粘贴 TradingView/MCP 读取到的 OHLC、RSI、MACD、BOLL、VWMA、支撑阻力等数据。"></textarea>
+                </div>
+                <div id="deepseek-output" class="tech-ai-box tech-note" style="margin-top:12px;">等待手动运行。</div>
+            </section>
+
+            <section class="tech-card">
+                <h3>TradingView 数据接入状态</h3>
+                <p class="tech-note">图表使用 TradingView 官方 widget。后续要读取图上指标值并画线，需要用 TradingView MCP 手动连接真实图表；不会默认后台盯盘。</p>
+                <div class="tech-pill-row">
+                    <span class="tech-pill">Widget: enabled</span>
+                    <span class="tech-pill">MCP: manual</span>
+                    <span class="tech-pill">DeepSeek: manual</span>
+                </div>
+            </section>
+        </aside>
+    </div>
+
+    <div class="tech-fab" aria-label="Technical quick actions">
+        <button type="button" onclick="loadTradingViewChart()">刷新图</button>
+        <a id="open-tv-link" href="https://www.tradingview.com/chart/?symbol=NASDAQ%3ANVDA" target="_blank" rel="noreferrer">打开 TV</a>
+        <button type="button" class="primary" onclick="runDeepSeekReport()">DeepSeek</button>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function normalizeTvSymbol(raw) {
+    var value = String(raw || '').trim().toUpperCase();
+    if (!value) return 'NASDAQ:NVDA';
+    if (value.indexOf(':') !== -1) return value;
+    return 'NASDAQ:' + value;
+}
+
+function tvSymbolUrl(symbol) {
+    return 'https://www.tradingview.com/chart/?symbol=' + encodeURIComponent(symbol);
+}
+
+function loadTradingViewChart() {
+    var symbol = normalizeTvSymbol(document.getElementById('tech-symbol').value);
+    var interval = document.getElementById('tech-timeframe').value || 'D';
+    var host = document.getElementById('tv-technical-widget');
+    document.getElementById('tech-symbol').value = symbol;
+    document.getElementById('chart-title').textContent = symbol + ' · TradingView';
+    document.getElementById('open-tv-link').href = tvSymbolUrl(symbol);
+    host.innerHTML = '';
+    var container = document.createElement('div');
+    container.className = 'tradingview-widget-container';
+    container.style.height = '100%';
+    container.style.width = '100%';
+    var widget = document.createElement('div');
+    widget.className = 'tradingview-widget-container__widget';
+    widget.style.height = 'calc(100% - 28px)';
+    widget.style.width = '100%';
+    container.appendChild(widget);
+    var copyright = document.createElement('div');
+    copyright.className = 'tradingview-widget-copyright';
+    copyright.innerHTML = '<a href="' + tvSymbolUrl(symbol) + '" rel="noopener nofollow" target="_blank"><span class="blue-text">' + symbol + ' chart</span></a><span class="trademark"> by TradingView</span>';
+    container.appendChild(copyright);
+    var script = document.createElement('script');
+    script.type = 'text/javascript';
+    script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js';
+    script.async = true;
+    script.text = JSON.stringify({
+        autosize: true,
+        symbol: symbol,
+        interval: interval,
+        timezone: 'exchange',
+        theme: 'dark',
+        style: '1',
+        locale: 'en',
+        allow_symbol_change: true,
+        hide_side_toolbar: false,
+        hide_top_toolbar: false,
+        hide_legend: false,
+        hide_volume: false,
+        details: true,
+        calendar: false,
+        withdateranges: true,
+        save_image: false,
+        studies: [
+            'BB@tv-basicstudies',
+            'MACD@tv-basicstudies',
+            'RSI@tv-basicstudies',
+            'MASimple@tv-basicstudies',
+            'MAExp@tv-basicstudies',
+            'Volume@tv-basicstudies'
+        ],
+        support_host: 'https://www.tradingview.com'
+    });
+    container.appendChild(script);
+    host.appendChild(container);
+}
+
+function loadTechnicalStatus() {
+    fetch('/api/v2/technical/status', { cache: 'no-store' })
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+            var ds = (data.providers || []).filter(function(p) { return p.name === 'DeepSeek'; })[0];
+            document.getElementById('deepseek-status').textContent = 'DeepSeek: ' + (ds ? ds.status : 'unknown');
+        })
+        .catch(function() {
+            document.getElementById('deepseek-status').textContent = 'DeepSeek: status failed';
+        });
+}
+
+function runDeepSeekReport() {
+    var output = document.getElementById('deepseek-output');
+    var symbol = normalizeTvSymbol(document.getElementById('tech-symbol').value);
+    output.textContent = 'DeepSeek 研判请求处理中...';
+    fetch('/api/v2/technical/deepseek-report', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            symbol: symbol,
+            timeframe: document.getElementById('tech-timeframe').value || 'D',
+            market_profile: document.getElementById('tech-market').value || 'US',
+            metrics: {
+                data_source: 'TradingView widget visible chart; numeric values pending MCP/datafeed connection',
+                required_modules: ['基础行情', '均线系统', 'MACD', 'RSI', 'BOLL', 'VWMA', '支撑阻力', 'SPY/QQQ', '风险指数']
+            },
+            notes: document.getElementById('tech-notes').value || ''
+        })
+    })
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+            if (data.status === 'ok') {
+                output.textContent = data.report || 'DeepSeek 返回为空。';
+            } else {
+                output.textContent = (data.message || 'DeepSeek 未配置或请求失败。') + '\n\n当前页面的报告结构和 TradingView 图表已经可用。';
+            }
+        })
+        .catch(function(err) {
+            output.textContent = 'DeepSeek 请求失败：' + err;
+        });
+}
+
+loadTradingViewChart();
+loadTechnicalStatus();
+</script>
+{% endblock %}
