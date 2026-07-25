@@ -12,13 +12,13 @@ from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeou
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, HTTPException, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 
 from augur.optional_deps import get_install_hint, is_available as _is_available
 
 logger = logging.getLogger(__name__)
 
-_HAS_AUGUR_DATA = _is_available("augur.data")
+_HAS_YFINANCE = _is_available("yfinance")
 
 router = APIRouter()
 
@@ -46,7 +46,7 @@ def api_fetch_ticker(ticker: str):
             status_code=400,
             detail="Invalid ticker format. Use 1-15 alphanumeric characters, dots, or hyphens.",
         )
-    if not _HAS_AUGUR_DATA:
+    if not _HAS_YFINANCE:
         feature, install_cmd = get_install_hint("augur.data")
         raise HTTPException(
             status_code=501,
@@ -79,7 +79,7 @@ def api_search_tickers(q: str = ""):
         raise HTTPException(status_code=400, detail="Search query too long (max 64 characters).")
     if any(ord(c) < 0x20 for c in q):
         raise HTTPException(status_code=400, detail="Search query contains invalid control characters.")
-    if not _HAS_AUGUR_DATA:
+    if not _HAS_YFINANCE:
         feature, install_cmd = get_install_hint("augur.data")
         raise HTTPException(
             status_code=501,
@@ -126,7 +126,7 @@ def api_hot_tickers(request: Request, refresh: bool = False):
     声明为 async def 会让那次阻塞 I/O 卡住整个事件循环。
     """
     try:
-        if not _HAS_AUGUR_DATA:
+        if not _HAS_YFINANCE:
             return {"status": "degraded", "tickers": [], "note": "yfinance 未安装，热门标的不可用。"}
         from augur.data import fetch_hot_tickers
         tickers = fetch_hot_tickers(force_refresh=refresh)
@@ -141,7 +141,7 @@ def api_hot_tickers(request: Request, refresh: bool = False):
         etag = hashlib.md5(data_json.encode()).hexdigest()
         if_none_match = request.headers.get("if-none-match")
         if if_none_match and if_none_match.strip('"') == etag:
-            return JSONResponse(status_code=304, content=None, headers={"ETag": f'"{etag}"'})
+            return Response(status_code=304, headers={"ETag": f'"{etag}"'})
         return JSONResponse(content=data, headers={"ETag": f'"{etag}"'})
     except Exception as e:
         logger.warning("hot tickers failed: %s", e)
@@ -157,7 +157,7 @@ def api_market_overview(request: Request, refresh: bool = False):
     同步 def：fetch_market_overview 在缓存未命中时同步调用 yfinance，
     async def 会阻塞事件循环。
     """
-    if not _HAS_AUGUR_DATA:
+    if not _HAS_YFINANCE:
         return {
             "status": "degraded",
             "as_of": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
@@ -175,7 +175,7 @@ def api_market_overview(request: Request, refresh: bool = False):
         etag = hashlib.md5(data_json.encode()).hexdigest()
         if_none_match = request.headers.get("if-none-match")
         if if_none_match and if_none_match.strip('"') == etag:
-            return JSONResponse(status_code=304, content=None, headers={"ETag": f'"{etag}"'})
+            return Response(status_code=304, headers={"ETag": f'"{etag}"'})
         return JSONResponse(content=data, headers={"ETag": f'"{etag}"'})
     except Exception as e:
         logger.warning("market overview failed: %s", e)
@@ -195,7 +195,7 @@ def api_market_movers():
     同步 def：fetch_hot_tickers 在缓存未命中时同步调用 yfinance，
     async def 会阻塞事件循环。
     """
-    if not _HAS_AUGUR_DATA:
+    if not _HAS_YFINANCE:
         return {"status": "degraded", "gainers": [], "losers": []}
     try:
         from augur.data import fetch_hot_tickers
@@ -219,7 +219,7 @@ def api_crypto_overview():
     若声明为 async def，future.result() 仍会阻塞事件循环本身；改成 def 后
     Starlette 会把整个函数丢进线程池执行，事件循环不受影响。
     """
-    if not _HAS_AUGUR_DATA:
+    if not _HAS_YFINANCE:
         return {"status": "degraded", "coins": []}
 
     CRYPTO_SYMBOLS = [
@@ -284,7 +284,7 @@ def api_crypto_overview():
 @router.get("/api/commodities", summary="大宗商品行情")
 def api_commodities():
     """Fetch Gold, Silver, Oil (WTI), Natural Gas prices and changes from yfinance."""
-    if not _HAS_AUGUR_DATA:
+    if not _HAS_YFINANCE:
         return {"status": "degraded", "commodities": []}
 
     COMMODITY_SYMBOLS = [
@@ -341,7 +341,7 @@ def api_commodities():
 @router.get("/api/treasury-rates", summary="美国国债收益率")
 def api_treasury_rates():
     """Fetch US 2Y, 5Y, 10Y, 30Y treasury yields from yfinance."""
-    if not _HAS_AUGUR_DATA:
+    if not _HAS_YFINANCE:
         return {"status": "degraded", "rates": []}
 
     TREASURY_SYMBOLS = [
@@ -402,7 +402,7 @@ def api_fear_greed():
     同步 def：fetch_market_overview 在缓存未命中时同步调用 yfinance，
     async def 会阻塞事件循环。
     """
-    if not _HAS_AUGUR_DATA:
+    if not _HAS_YFINANCE:
         return {
             "status": "degraded",
             "index": 50,
@@ -462,7 +462,7 @@ def api_sector_performance(request: Request, refresh: bool = False):
     不会阻塞事件循环。内部用 ThreadPoolExecutor 并行抓取 11 个 ETF，
     每个标的最多等待 10 秒，避免单个标的卡住拖慢整体响应。
     """
-    if not _HAS_AUGUR_DATA:
+    if not _HAS_YFINANCE:
         return {"status": "degraded", "sectors": [], "note": "yfinance 未安装，板块行情不可用。"}
 
     sector_etfs = [
@@ -529,7 +529,7 @@ def api_sector_performance(request: Request, refresh: bool = False):
         etag = hashlib.md5(data_json.encode()).hexdigest()
         if_none_match = request.headers.get("if-none-match")
         if if_none_match and if_none_match.strip('"') == etag:
-            return JSONResponse(status_code=304, content=None, headers={"ETag": f'"{etag}"'})
+            return Response(status_code=304, headers={"ETag": f'"{etag}"'})
         return JSONResponse(content=data, headers={"ETag": f'"{etag}"'})
     except ImportError:
         return {"status": "degraded", "sectors": [], "note": "yfinance 未安装，板块行情不可用。"}

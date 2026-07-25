@@ -10,7 +10,7 @@ import json
 from typing import Any, Dict, List, Optional, Set
 
 from fastapi import APIRouter, HTTPException, Request, WebSocket
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel
 from starlette.websockets import WebSocketDisconnect
 
@@ -92,7 +92,7 @@ async def api_get_workspace(request: Request):
     etag = hashlib.md5(data_json.encode()).hexdigest()
     if_none_match = request.headers.get("if-none-match")
     if if_none_match and if_none_match.strip('"') == etag:
-        return JSONResponse(status_code=304, content=None, headers={"ETag": f'"{etag}"'})
+        return Response(status_code=304, headers={"ETag": f'"{etag}"'})
     return JSONResponse(content=data, headers={"ETag": f'"{etag}"'})
 
 

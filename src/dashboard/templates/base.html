@@ -1191,7 +1191,9 @@ if ('serviceWorker' in navigator) {
 
         // Initial load via REST (fast), then upgrade to WS
         fetchPrices();
-        connectWS();
+        if (window.AUGUR_ENABLE_PRICE_WS === true) {
+            connectWS();
+        }
         // Refresh every 60s as fallback
         setInterval(fetchPrices, 60000);
     })();

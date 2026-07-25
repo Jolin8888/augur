@@ -1,6 +1,7 @@
 """WebSocket routes: analyze, committee, prices, workflow."""
 
 import json
+import os
 import re
 import time as _time
 from typing import Any, Dict, List, Optional
@@ -200,6 +201,17 @@ async def ws_prices(websocket: WebSocket):
     if not _ws_api_token_ok(websocket):
         await websocket.close(code=1008, reason="Unauthorized")
         return
+    if os.environ.get("AUGUR_ENABLE_PRICE_WS", "").lower() not in {"1", "true", "yes"}:
+        await websocket.accept()
+        await websocket.send_json({
+            "type": "price_stream_disabled",
+            "reason": "Lightweight mode keeps live price WebSocket disabled.",
+        })
+        try:
+            while True:
+                await websocket.receive_text()
+        except WebSocketDisconnect:
+            return
     streamer = _get_price_streamer()
     if not await streamer.connect(websocket):
         await websocket.close(code=1008, reason="Too many connections")
