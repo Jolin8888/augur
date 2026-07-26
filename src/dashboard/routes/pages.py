@@ -14,8 +14,6 @@ from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
-from pydantic import BaseModel, Field
-
 from augur.config import get_config
 from augur.workspace import get_workspace, resolve_landing_url
 from dashboard.deps import _APP_START_TIME, get_registry, templates
@@ -161,18 +159,6 @@ V2_PAGES = {
             {"title": "Brooks 价格行为", "body": "后续标注趋势、震荡、突破、回踩、楔形和信号 K。"},
         ],
     },
-    "technical-analysis": {
-        "title": "技术面分析",
-        "heading": "技术面分析",
-        "description": "TradingView 图表 + agent 式技术面研判报告，覆盖行情、均线、MACD、RSI、布林带、VWMA、支撑阻力、市场规则、SPY/QQQ 大盘背景和风险指数。",
-        "mode_label": "TradingView 图表",
-        "guardrail": "页面打开时只加载 TradingView 图表。DeepSeek 研判必须手动触发，且需要 DEEPSEEK_API_KEY。",
-        "cards": [
-            {"title": "基础行情", "body": "收盘价、涨跌幅、阶段涨跌、5/20日均量、量比和量价背离提示。", "bullets": ["收盘价", "涨跌幅", "量比"]},
-            {"title": "技术指标", "body": "均线、MACD、RSI、布林带、VWMA 逐项拆解，保留多空信号和技术含义。", "bullets": ["EMA/SMA", "MACD", "RSI", "BOLL", "VWMA"], "wide": True},
-            {"title": "大盘共振", "body": "SPY/QQQ 与主标的放在同一套趋势框架里判断，避免只看个股。", "bullets": ["SPY", "QQQ", "趋势共振"]},
-        ],
-    },
     "runtime": {
         "title": "运行状态",
         "heading": "运行状态",
@@ -248,16 +234,6 @@ V2_PAGE_STATE = {
         "controls": ["打开 TradingView", "加载 K 线样本", "画线", "标记价格行为"],
         "next_steps": ["选择图表库", "确认实时数据源", "定义画线保存方式"],
     },
-    "technical-analysis": {
-        "sources": [
-            {"name": "TradingView 图表组件", "status": "外部加载", "mode": "页面加载时", "limit": "仅此页面"},
-            {"name": "指标逻辑", "status": "已就绪", "mode": "本地规则", "limit": "不调用 API"},
-            {"name": "SPY / QQQ 大盘背景", "status": "计划中", "mode": "TradingView 图表", "limit": "手动刷新"},
-            {"name": "DeepSeek 研判报告", "status": "未配置", "mode": "手动提交", "limit": "需要 API key"},
-        ],
-        "controls": ["加载 TradingView 图表", "打开 TradingView", "运行 DeepSeek 报告", "查看支撑 / 阻力"],
-        "next_steps": ["接入 TradingView MCP 指标值", "保存指标快照", "加入券商 / 市场规则配置"],
-    },
     "runtime": {
         "sources": [
             {"name": "本地进程", "status": "运行中", "mode": "只读", "limit": "仅本地"},
@@ -299,14 +275,6 @@ def _with_status_labels(state: dict) -> dict:
         for source in payload.get("sources", [])
     ]
     return payload
-
-
-class TechnicalDeepSeekBody(BaseModel):
-    symbol: str = Field(default="NASDAQ:NVDA", max_length=40)
-    timeframe: str = Field(default="D", max_length=8)
-    market_profile: str = Field(default="US", max_length=20)
-    metrics: dict = Field(default_factory=dict)
-    notes: str = Field(default="", max_length=4000)
 
 
 def _v2_context(page_id: str) -> dict:
@@ -351,72 +319,6 @@ def _deepseek_status() -> dict:
         "status": "configured" if configured else "未配置",
         "detail": os.environ.get("DEEPSEEK_MODEL", "deepseek-v4-flash") if configured else "设置 DEEPSEEK_API_KEY 后启用",
     }
-
-
-def _technical_prompt(body: TechnicalDeepSeekBody) -> str:
-    return f"""请生成中文技术面分析报告的结构化 JSON，报告只作为研究参考，不构成投资建议。
-
-标的：{body.symbol}
-周期：{body.timeframe}
-市场类型：{body.market_profile}
-用户补充/已知指标：{body.metrics}
-备注：{body.notes}
-
-只返回 JSON，不要返回 Markdown、代码围栏或解释文字。JSON 必须兼容这个结构：
-{{
-  "status": "ok",
-  "symbol": "{body.symbol}",
-  "market_profile": "{body.market_profile}",
-  "snapshot": {{"source": "DeepSeek structured layer", "as_of": "YYYY-MM-DD"}},
-  "risk": {{"score": 0-100, "label": "低/中/偏高/高/极高"}},
-  "sections": {{
-    "basic": [{{"item": "最新收盘价", "value": "199.18 (2026-07-24)", "meaning": "技术分析基准价"}}],
-    "indicator_details": [
-      {{
-        "title": "均线系统（空头排列，死叉格局）",
-        "table": [{{"indicator": "10日EMA", "value": "226.00", "signal": "短期空头"}}],
-        "points": ["价格远低于 10EMA 和 50SMA，属于严重偏离均线的超跌状态。"]
-      }}
-    ],
-    "support": [{{"level": "第一支撑", "price": "196.98", "basis": "日内低点"}}],
-    "resistance": [{{"level": "第一阻力", "price": "226.00", "basis": "10日EMA"}}],
-    "market_rules": [{{"rule": "A股 T+1", "impact": "盘中抄底当日无法卖出，需要承受隔夜风险"}}],
-    "backdrop": [{{"symbol": "SPY", "trend": "走强/转弱/待确认", "status": "大盘过滤结论"}}],
-    "summary": {{
-      "core": "核心判断",
-      "bearish": ["看空证据"],
-      "bullish": ["潜在积极信号"],
-      "watch": ["观察条件"]
-    }},
-    "signals": [{{"indicator": "MACD", "value": "-6.44", "signal": "空", "meaning": "死叉运行，空头动能强化"}}]
-  }}
-}}
-
-要求：
-- 不要编造没有提供的精确价格或指标值；没有数据时写“待接入/暂无数据”。
-- 可以给出判断框架、观察条件和风险等级，但不要给个性化买卖指令。
-- 风格参考专业 agent 报告：结构化、表格化、直接指出多空证据和风险。
-- 如果 body.metrics.generated_report 已经有 sections，请在它的基础上补全 indicator_details 和文字解释，不要改变真实数值。"""
-
-
-def _parse_llm_json(content: str) -> dict | None:
-    text = (content or "").strip()
-    if not text:
-        return None
-    if text.startswith("```"):
-        text = re.sub(r"^```(?:json)?\s*", "", text, flags=re.IGNORECASE)
-        text = re.sub(r"\s*```$", "", text)
-    try:
-        parsed = json.loads(text)
-    except json.JSONDecodeError:
-        match = re.search(r"\{.*\}", text, flags=re.DOTALL)
-        if not match:
-            return None
-        try:
-            parsed = json.loads(match.group(0))
-        except json.JSONDecodeError:
-            return None
-    return parsed if isinstance(parsed, dict) else None
 
 
 def _tv_to_data_symbol(symbol: str) -> str:
@@ -859,83 +761,6 @@ def _build_technical_report(symbol: str, market_profile: str) -> dict:
     }
 
 
-@router.get("/api/v2/technical/status", summary="Technical analysis provider status")
-async def api_v2_technical_status():
-    return JSONResponse(content={
-        "status": "ok",
-        "providers": [
-            {"name": "TradingView 图表组件", "status": "外部加载", "detail": "只在 /technical-analysis 页面由浏览器加载"},
-            {"name": "TradingView MCP", "status": "手动", "detail": "Codex 可手动使用，但不是仪表盘后台任务"},
-            _env_status("FINNHUB_API_KEY", "Finnhub quote/candle"),
-            _deepseek_status(),
-        ],
-        "models": {
-            "default": os.environ.get("DEEPSEEK_MODEL", "deepseek-v4-flash"),
-            "base_url": os.environ.get("DEEPSEEK_BASE_URL", "https://api.deepseek.com"),
-        },
-        "guardrails": [
-            "只有用户点击运行时才请求 DeepSeek",
-            "仪表盘不会自动读取 TradingView MCP",
-            "没有隐藏后台轮询",
-        ],
-    })
-
-
-@router.get("/api/v2/technical/report", summary="Generate technical analysis report")
-def api_v2_technical_report(symbol: str = "NASDAQ:NVDA", market_profile: str = "US"):
-    """Generate a bounded technical report from configured lightweight data sources."""
-    return JSONResponse(content=_build_technical_report(symbol, market_profile))
-
-
-@router.post("/api/v2/technical/deepseek-report", summary="Run manual DeepSeek technical report")
-async def api_v2_technical_deepseek_report(body: TechnicalDeepSeekBody):
-    api_key = os.environ.get("DEEPSEEK_API_KEY", "").strip()
-    model = os.environ.get("DEEPSEEK_MODEL", "deepseek-v4-flash").strip() or "deepseek-v4-flash"
-    base_url = os.environ.get("DEEPSEEK_BASE_URL", "https://api.deepseek.com").rstrip("/")
-    if not api_key:
-        return JSONResponse(content={
-            "status": "未配置",
-            "model": model,
-            "message": "DEEPSEEK_API_KEY 未配置。页面已就绪，但没有发送 AI 请求。",
-        })
-    try:
-        import httpx
-        async with httpx.AsyncClient(timeout=45.0) as client:
-            resp = await client.post(
-                f"{base_url}/chat/completions",
-                headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
-                json={
-                    "model": model,
-                    "messages": [
-                        {"role": "system", "content": "你是严谨的技术面研究助手。只基于给定数据和明确可验证的技术分析规则输出，不构成投资建议。"},
-                        {"role": "user", "content": _technical_prompt(body)},
-                    ],
-                    "max_tokens": 3200,
-                },
-            )
-        resp.raise_for_status()
-        data = resp.json()
-        content = data.get("choices", [{}])[0].get("message", {}).get("content", "")
-        report_json = _parse_llm_json(content)
-        if report_json:
-            report_json.setdefault("status", "ok")
-            report_json.setdefault("symbol", body.symbol)
-            report_json.setdefault("market_profile", body.market_profile)
-        return JSONResponse(content={
-            "status": "ok",
-            "model": model,
-            "report": content,
-            "report_json": report_json,
-            "usage": data.get("usage", {}),
-        })
-    except Exception as exc:
-        return JSONResponse(status_code=502, content={
-            "status": "失败",
-            "model": model,
-            "message": f"DeepSeek 请求失败：{exc}",
-        })
-
-
 def _module_status(module_name: str, label: str, install_hint: str = "") -> dict:
     available = importlib.util.find_spec(module_name) is not None
     return {
@@ -977,7 +802,6 @@ async def api_v2_runtime_status(request: Request):
         {"name": "X / Twitter", "status": "已禁用", "detail": "仅数据源框架"},
         {"name": "Deep Sync", "status": "已禁用", "detail": "仅数据源框架"},
         {"name": "TradingView", "status": "已禁用", "detail": "仅交易实验室框架"},
-        {"name": "技术面分析", "status": "手动", "detail": "TradingView 图表组件 + 点击后 DeepSeek"},
     ]
     env = [
         _env_status("X_API_BEARER_TOKEN", "X API"),
@@ -1035,13 +859,6 @@ async def macro_page(request: Request):
 @router.get("/trading-lab", response_class=HTMLResponse, summary="Version 2.0 trading lab shell")
 async def trading_lab_page(request: Request):
     return templates.TemplateResponse(request=request, name="v2_placeholder.html", context=_v2_context("trading-lab"))
-
-
-@router.get("/technical-analysis", response_class=HTMLResponse, summary="Version 2.0 technical analysis")
-async def technical_analysis_page(request: Request):
-    return templates.TemplateResponse(request=request, name="technical_analysis.html", context={
-        "title": "技术面分析",
-    })
 
 
 @router.get("/runtime", response_class=HTMLResponse, summary="Version 2.0 runtime status shell")
